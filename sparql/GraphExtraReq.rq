@@ -1,0 +1,31 @@
+SELECT DISTINCT 
+  ?item
+  ?itemLabel 
+  ?linkTo
+  ?linkToLabel 
+  ?typeOfLink
+WHERE {
+  VALUES ?org { JSVAR:ORGID }  
+
+  {
+    ?org wdt:P169 ?ceo.
+    BIND(?ceo AS ?item)
+    BIND("hasCEO" AS ?typeOfLink)
+  }
+  UNION
+  {
+    ?org wdt:P1037 ?director.
+    BIND(?director AS ?item)
+    BIND("hasDirector" AS ?typeOfLink)
+  }
+  UNION
+  {
+    ?org wdt:P488 ?chair.
+    BIND(?chair AS ?item)
+    BIND("hasChairPerson" AS ?typeOfLink)
+  }
+  # Optional: get labels for items and orgs
+  OPTIONAL { ?item rdfs:label ?itemLabel. FILTER(LANG(?itemLabel) = "en") }
+  OPTIONAL { ?org rdfs:label ?linkToLabel. FILTER(LANG(?linkToLabel) = "en") }
+  BIND(?org AS ?linkTo)
+}

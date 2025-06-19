@@ -1,0 +1,39 @@
+SELECT DISTINCT 
+  ?item
+  ?itemLabel 
+  ?linkTo
+  ?linkToLabel 
+  ?typeOfLink
+WHERE {
+  VALUES ?perpetrator { SVAR:SUBPERPETRATOR }
+  # Owner/parent/child orgs.  #  add Owner of?
+  {
+    ?perpetrator wdt:P127+ ?owner.
+    BIND(?owner AS ?item)
+    BIND(?perpetrator AS ?linkTo)
+    BIND("ownedBy" AS ?typeOfLink)
+  }
+ 
+  UNION {
+  ?perpetrator wdt:P355+ ?childOrg.
+  BIND(?childOrg AS ?item)
+  BIND(?perpetrator AS ?linkTo)
+  BIND("childOrgOf" AS ?typeOfLink)
+    }
+
+  UNION {
+    ?perpetrator wdt:P749+ ?parentOrg.
+    BIND(?parentOrg AS ?item)
+    BIND(?perpetrator AS ?linkTo)
+    BIND("parentOrg" AS ?typeOfLink)
+  }
+  UNION {
+    ?perpetrator wdt:P361+ ?partof.
+    BIND(?partof AS ?item)
+    BIND(?perpetrator AS ?linkTo)
+    BIND("partOf" AS ?typeOfLink)
+  }
+  
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}
+LIMIT 1000
