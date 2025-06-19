@@ -1,4 +1,4 @@
-__Complicitygraph__ is a visual tool for exploring implication of various actors in the Palestinian Genocide. It queries its data directly from the frequenty updated [WikiData graph database](https://www.wikidata.org/wiki/Q124086054). 
+__Complicitygraph__ is a visual tool for exploring implication of various actors in the Palestinian Genocide. It queries its data directly from the frequenty updated [WikiData database](https://www.wikidata.org/wiki/Q124086054). 
 
 Test it here : https://tristounegg.github.io/complicitygraph/
 
