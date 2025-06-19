@@ -1,24 +1,3 @@
-/*
-
-IDEOGRAPH - explore ideologies of political parties with SPAQRL requests to WikiData, D3 and PixiJS.
-
-Copyright (C) 2021 André Ourednik
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
- */
-
 let endpoint = "https://query.wikidata.org/sparql?query=";
 // messages:
 let loadinginfo = d3.select("#loadinginfo");
@@ -33,7 +12,6 @@ let graph, graphstore, canvas ;
 
 // Make a list of countries
 getCountryList();
-
 let Europe = ["wd:Q1246", // Kosovo
     "wd:Q142", "wd:Q145", // UK
     "wd:Q183", "wd:Q189", // Iceland
@@ -70,7 +48,6 @@ let Europe = ["wd:Q1246", // Kosovo
     "wd:Q55", // Netherlands
     "wd:Q9676" // Isle of Man
 ];
-
 let subsaharanAfrica = ["wd:Q916","wd:Q962","wd:Q963","wd:Q965","wd:Q967","wd:Q1009","wd:Q929","wd:Q657","wd:Q974","wd:Q977","wd:Q983","wd:Q986","wd:Q1050","wd:Q115","wd:Q1000","wd:Q117","wd:Q1006","wd:Q1007","wd:Q1008","wd:Q114","wd:Q1013","wd:Q1014","wd:Q1019","wd:Q1020","wd:Q912","wd:Q1025","wd:Q1029","wd:Q1030","wd:Q1032","wd:Q1033","wd:Q971","wd:Q1041","wd:Q1045","wd:Q34754","wd:Q258","wd:Q1049","wd:Q924","wd:Q1005","wd:Q945","wd:Q1036","wd:Q953","wd:Q954"]
 let Asia = ["wd:Q851","wd:Q40362", "wd:Q244165", "wd:Q1027", "wd:Q826", "wd:Q801", "wd:Q574","wd:Q889", "wd:Q399", "wd:Q619829", "wd:Q227", "wd:Q398", "wd:Q902", "wd:Q917", "wd:Q424", "wd:Q326343", "wd:Q230", "wd:Q8646", "wd:Q668", "wd:Q252", "wd:Q17", "wd:Q810", "wd:Q232", "wd:Q41470", "wd:Q205047", "wd:Q817", "wd:Q813", "wd:Q819", "wd:Q822", "wd:Q14773", "wd:Q833", "wd:Q711", "wd:Q836", "wd:Q837", "wd:Q423", "wd:Q843", "wd:Q148", "wd:Q928", "wd:Q334", "wd:Q884", "wd:Q23427", "wd:Q854", "wd:Q219060", "wd:Q858", "wd:Q865", "wd:Q863", "wd:Q869", "wd:Q43", "wd:Q23681", "wd:Q874", "wd:Q1498", "wd:Q265", "wd:Q881"]
 let CanadaAndUS = ["wd:Q16","wd:Q30"];
@@ -135,25 +112,25 @@ async function getCountryList() {
 }
 
 let CEOData; 
-let parties = []
+let perpetrators = []
 /** Fetches the graph data from wikidata 
  * @param countries An array of countries
 */
 async function getGraphData(countries) {   
     loadinginfo.style('display', 'block');
     loadingGraph.style('display', 'block');
-    let sparql1 = await (await fetch('sparql/GraphReq.rq')).text(); 
+    let sparql1 = await (await fetch('sparql/Base.rq')).text(); 
     let req = endpoint + encodeURIComponent(sparql1.replace("JSVAR:COUNTRIES",countries.join(" ")).replace("/#.*/gm",''));
     let data = await fetchWikiData(req)
     console.log("organisations", data);
 
     let organisationsWDid = data.map(d => d.item.replace("http://www.wikidata.org/entity/","wd:"));
-    let sparql2 = await (await fetch('sparql/GraphExtraReq.rq')).text();
+    let sparql2 = await (await fetch('sparql/CEO.rq')).text();
     let reqExtra = endpoint + encodeURIComponent(sparql2.replace("JSVAR:ORGID",organisationsWDid.join(" ")).replace("/#.*/gm",''));
     let CEOData = await fetchWikiData(reqExtra)
     console.log("CEO data", CEOData);
     
-    let sparql3 = await (await fetch('sparql/GraphReq2.rq')).text(); 
+    let sparql3 = await (await fetch('sparql/Iteration.rq')).text(); 
     let req3 = endpoint + encodeURIComponent(sparql3.replace("SVAR:SUBPERPETRATOR",organisationsWDid.join(" ")).replace("/#.*/gm",''));
     let data3 = await fetchWikiData(req3)
     console.log("organisations", data3);
@@ -161,12 +138,12 @@ async function getGraphData(countries) {
 
     loadingGraph.text("Fetching extra graph links from WikiData...");
     // console.log(dataExtra);
-    // let parties = []; // for later filtering out ideology nodes with no incoming parties
+    // let perpetrators = []; // for later filtering out ideology nodes with no incoming perpetrators
     let nodes = [];
     let links = [];
     data.forEach((line)=>{ 
         if (typeof line.item !== "undefined" & typeof line.linkTo !== "undefined") { 
-            parties.push(line.item.replace("http://www.wikidata.org/entity/","wd:"));
+            perpetrators.push(line.item.replace("http://www.wikidata.org/entity/","wd:"));
             nodes.push({
                 id: line.item.replace("http://www.wikidata.org/entity/","wd:"), 
                 label : line.itemLabel + " (" + line.countryLabel + ")" ,
@@ -186,7 +163,7 @@ async function getGraphData(countries) {
     });
     CEOData.forEach((line)=>{ 
         if (typeof line.item !== "undefined" & typeof line.linkTo !== "undefined") { 
-            parties.push(line.item.replace("http://www.wikidata.org/entity/","wd:"));
+            perpetrators.push(line.item.replace("http://www.wikidata.org/entity/","wd:"));
             nodes.push({
                 id: line.item.replace("http://www.wikidata.org/entity/","wd:"), 
                 label : line.itemLabel + " (" + line.countryLabel + ")" ,
@@ -208,7 +185,7 @@ async function getGraphData(countries) {
     
     data3.forEach((line) => { 
         if (typeof line.item !== "undefined" & typeof line.linkTo !== "undefined") { 
-            parties.push(line.item.replace("http://www.wikidata.org/entity/","wd:"));
+            perpetrators.push(line.item.replace("http://www.wikidata.org/entity/","wd:"));
             nodes.push({
                 id: line.item.replace("http://www.wikidata.org/entity/","wd:"), 
                 label : line.itemLabel + " (" + line.countryLabel + ")" ,
@@ -233,23 +210,18 @@ async function getGraphData(countries) {
         if (!link.target["linkCount"]) link.target["linkCount"] = 0;
         link.target["linkCount"]++;    
     });
-    // Remove nodes in group 4 with linkCount < 1
+    // Remove nodes in group 4 (first iteration) with linkCount < 1
     const nodesToKeep = nodes.filter(node => {
     return !(node.group === 4 && (!node.linkCount || node.linkCount < 1));
     });
-
-    // Create a Set of nodes to keep for quick lookup
     const nodesSet = new Set(nodesToKeep);
-const nodeIdsToKeep = new Set(nodesToKeep.map(node => node.id));
+    const nodeIdsToKeep = new Set(nodesToKeep.map(node => node.id));
     const linksToKeep = links.filter(link => {
     // If source/target are objects, use their id property, otherwise use them directly
     const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
     const targetId = typeof link.target === 'object' ? link.target.id : link.target;
     return nodeIdsToKeep.has(sourceId) && nodeIdsToKeep.has(targetId);
     });
-
-
-    // Update the graph
     nodes = nodesToKeep;
     links = linksToKeep;
 
@@ -263,7 +235,7 @@ const nodeIdsToKeep = new Set(nodesToKeep.map(node => node.id));
 
 let width = screen.availWidth, height = screen.availHeight;
 function colour(num) {
-    if (num == 3) return 0x969af1 
+    if (num == 3) return 0x969af1 // should be CEO
     if (num==4) return 0x44d15e
     if (num > 1) return 0xD01B1B
     return 0x47abd8 ;
@@ -333,7 +305,7 @@ function drawGraph(graph) {
 
     // render NODES
 
-    let containerParties = new PIXI.Container();
+    let containerperpetrators = new PIXI.Container();
     let containerIdeologies = new PIXI.Container();
     let containerCEO = new PIXI.Container();
     let containerRecursion = new PIXI.Container();
@@ -358,7 +330,7 @@ function drawGraph(graph) {
            .on('touchmove', onDragMove)
         ;
 
-        if (node.group==1) containerParties.addChild(node.gfx);
+        if (node.group==1) containerperpetrators.addChild(node.gfx);
         if (node.group == 2) containerIdeologies.addChild(node.gfx);
         if (node.group == 3) containerCEO.addChild(node.gfx);
         if (node.group == 4) containerRecursion.addChild(node.gfx);
@@ -411,12 +383,12 @@ function drawGraph(graph) {
 
     containerLinks.zIndex = 0;
     containerIdeologies.zIndex = 2;
-    containerParties.zIndex = 1;
+    containerperpetrators.zIndex = 1;
     containerCEO.zIndex = 3;
     containerRecursion.zIndex = 4;
 
     app.stage.addChild(containerLinks);
-    app.stage.addChild(containerParties);
+    app.stage.addChild(containerperpetrators);
     app.stage.addChild(containerIdeologies);
     app.stage.addChild(containerCEO);
     app.stage.addChild(containerRecursion);
@@ -619,3 +591,26 @@ function restoreGraph(){
         l.target = graph.nodes.filter(n=> n.id == l.target.id)[0];
     });
 }
+
+
+
+/*
+
+COMPLICITYGRAPH - explore ideologies of political perpetrators with SPAQRL requests to WikiData, D3 and PixiJS.
+
+forked from ideogaph 
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+ */

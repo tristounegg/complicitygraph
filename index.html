@@ -1,74 +1,136 @@
 <!doctype html>
 <html class="no-js" lang="en">
-    <head>
-        <meta charset="utf-8">
-        <title>IdeoGraph - explorer of ideologies and political parties on WikiData</title>
-        <meta name="description" content="explorer of ideologies and political parties on WikiData">
-        <meta name="theme-color" content="#000000">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta property="og:title" content="IdeoGraph"/>
-        <meta property="og:type" content="website"/>
-        <meta property="og:url" content="https://ourednik.info/ideograph"/>
-        <meta property="og:image" content="https://ourednik.info/ideograph/img/ideograph_environmentalism_Asia.jpg"/>
-        <meta property="og:description" content="explorer of ideologies and political parties on WikiData"/>      
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Maven Pro">
-        <style>
-            body {font-family: 'Maven Pro';overflow:hidden}
-            #label {position:absolute;font-weight: bold ; font-size:10px; width:100px; }
-            #countryselector {position:absolute;font-size:11px; top:50px;left:10px;height: calc(100% - 30px);overflow-y: scroll;}
-            #countryselectorbutton {position:absolute;font-size:11px; top:10px;left:10px;height:30px}
-            #loadinginfo {position:absolute;top:40%;left:40%;padding:20px;background: black; color: azure; display:none; z-index:10000}
-            #title {position: absolute;right:10px;top:10px;width:200px}
-            h1 {font-size: 17px; margin-bottom: 0.2em;}
-            .subtitle {font-size:14px; font-style: italic; margin-bottom: 0.5em;}
-            .author {font-size:14px; margin-bottom: 0.5em;}
-            .sourcedocs {font-size:13px; margin-bottom: 0.3em;}
-            a {color: #47abd8;}
-       </style>
-    </head>
-    <body>
-        <!-- <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=default"></script> -->
-        <div id="title">
-            <h1>IdeoGraph</h1>
-            <div class="subtitle">explorer of ideologies and political parties on WikiData</div>
-            <div class="author">CC BY <a href="https://ourednik.info">André Ourednik</a></div>
-            <div class="sourcedocs">Source : WikiData (live requests to SPARQL endpoint)</div>
-            <div class="sourcedocs"><a href="https://ourednik.info/maps/2021/08/13/ideograph-explore-ideologies-of-political-parties-with-spaqrl-requests-to-wikidata-d3-and-pixijs/" target="_blank">Documentation</a></div>
-        </div>
-        <div id="label"><a></a></div>
-        <div id="countryselectorbutton">
-            <div>
-            <input type="button" value="Unselect All" onclick="unSelectAllCountries()"  style="left: 0px;
-            top: 10px;font-family: inherit;">
+
+<head>
+    <meta charset="utf-8">
+    <title>ComplicityGraph - explorer of palestinian genocide accomplices using WikiData</title>
+    <meta name="description" content="explorer of palestinian genocide accomplices using WikiData">
+    <meta name="theme-color" content="#000000">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:title" content="ComplicityGraph" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://github.com/tristounegg/complicitygraph" />
+    <meta property="og:image"
+        content="https://plus.unsplash.com/premium_photo-1675865395362-6bcbe9788503?q=80&w=1025&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" />
+    <meta property="og:description" content="explorer of palestinian genocide accomplices using WikiData" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Maven Pro">
+    <style>
+        body {
+            font-family: 'Maven Pro';
+            overflow: hidden
+        }
+
+        #label {
+            position: absolute;
+            font-weight: bold;
+            font-size: 10px;
+            width: 100px;
+        }
+
+        #countryselector {
+            position: absolute;
+            font-size: 11px;
+            top: 50px;
+            left: 10px;
+            height: calc(100% - 30px);
+            overflow-y: scroll;
+        }
+
+        #countryselectorbutton {
+            position: absolute;
+            font-size: 11px;
+            top: 10px;
+            left: 10px;
+            height: 30px
+        }
+
+        #loadinginfo {
+            position: absolute;
+            top: 40%;
+            left: 40%;
+            padding: 20px;
+            background: black;
+            color: azure;
+            display: none;
+            z-index: 10000
+        }
+
+        #title {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            width: 200px
+        }
+
+        h1 {
+            font-size: 17px;
+            margin-bottom: 0.2em;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            font-style: italic;
+            margin-bottom: 0.5em;
+        }
+
+        .author {
+            font-size: 14px;
+            margin-bottom: 0.5em;
+        }
+
+        .sourcedocs {
+            font-size: 13px;
+            margin-bottom: 0.3em;
+        }
+
+        a {
+            color: #47abd8;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=default"></script> -->
+    <div id="title">
+        <h1>ComplicityGraph</h1>
+        <div class="subtitle">explorer of palestinian genocide accomplices using WikiData</div>
+        <div class="sourcedocs">Source : WikiData (live requests to SPARQL endpoint)</div>
+    </div>
+    <div id="label"><a></a></div>
+    <div id="countryselectorbutton">
+        <div>
+            <!-- <input type="button" value="Unselect All" onclick="unSelectAllCountries()" style="left: 0px;
+            top: 10px;font-family: inherit;"> -->
             <input id="upgradeGraphButton" type="button" value="Update Graph" onclick="updateGraph()" style="left: 50px;
             top: 10px;font-family: inherit;">
-            <input type="button" value="Freeze Graph" onclick="simulation.stop()"  style="left: 100px;
+            <input type="button" value="Freeze Graph" onclick="simulation.stop()" style="left: 100px;
             top: 10px;font-family: inherit;">
-            </div>
-            <div id="groupSelector">
-                <a href="#" onClick="selectGroupAndUpdate(Europe)">Europe (democracies only)</a>
-                <a href="#" onClick="selectGroupAndUpdate(subsaharanAfrica)">Sub-Saharan Africa</a>
-                <a href="#" onClick="selectGroupAndUpdate(Asia)">Asia (without Russia)</a>
-                <a href="#" onClick="selectGroupAndUpdate(CanadaAndUS)">USA and Canada</a>
-                <a href="#" onClick="selectGroupAndUpdate(LatinAmerica)">Latin America</a>
-                <a href="#" onClick="selectGroupAndUpdate(RussiaAndBelarus)">Russia and Belarus</a>
-                <a href="#" onClick="selectGroupAndUpdate(NorthAfrica)">North Africa</a>
-                <a href="#" onClick="selectGroupAndUpdate(Oceania)">Oceania</a>
-            </div>
         </div>
-        <div id="countryselector"></div>
-        <div id="loadinginfo">
-            <div id="loadingCountries" style="display: none;">Loading list of countries...</div>
-            <div id="countriesLoaded" style="display: none;">Countries loaded.</div>
-            <div id="loadingGraph" style="display: none;">Loading graph from WikiData...</div>
-            <div id="constructingGraph" style="display: none;">Loading list of countries...</div>
-            <div id="updatingGraph" style="display: none;">Updatig graph...</div>
-        </div>
-        <script src="https://d3js.org/d3.v5.min.js"></script>
-        <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/5.1.3/pixi.min.js"></script> -->
-        <script src="lib/pixi.min.js"></script>
-        <script src="lib/viewport.min.js"></script>
-        <script src="lib/papaparse.min.js"></script>
-        <script src="index.js"></script>
-    </body>
+        <!-- <div id="groupSelector">
+            <a href="#" onClick="selectGroupAndUpdate(Europe)">Europe (democracies only)</a>
+            <a href="#" onClick="selectGroupAndUpdate(subsaharanAfrica)">Sub-Saharan Africa</a>
+            <a href="#" onClick="selectGroupAndUpdate(Asia)">Asia (without Russia)</a>
+            <a href="#" onClick="selectGroupAndUpdate(CanadaAndUS)">USA and Canada</a>
+            <a href="#" onClick="selectGroupAndUpdate(LatinAmerica)">Latin America</a>
+            <a href="#" onClick="selectGroupAndUpdate(RussiaAndBelarus)">Russia and Belarus</a>
+            <a href="#" onClick="selectGroupAndUpdate(NorthAfrica)">North Africa</a>
+            <a href="#" onClick="selectGroupAndUpdate(Oceania)">Oceania</a>
+        </div> -->
+    </div>
+    <!-- <div id="countryselector"></div> -->
+    <div id="loadinginfo">
+        <div id="loadingCountries" style="display: none;">Loading list of countries...</div>
+        <div id="countriesLoaded" style="display: none;">Countries loaded.</div>
+        <div id="loadingGraph" style="display: none;">Loading graph from WikiData...</div>
+        <div id="constructingGraph" style="display: none;">Loading list of countries...</div>
+        <div id="updatingGraph" style="display: none;">Updatig graph...</div>
+    </div>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/5.1.3/pixi.min.js"></script> -->
+    <script src="lib/pixi.min.js"></script>
+    <script src="lib/viewport.min.js"></script>
+    <script src="lib/papaparse.min.js"></script>
+    <script src="index.js"></script>
+</body>
+
 </html>
