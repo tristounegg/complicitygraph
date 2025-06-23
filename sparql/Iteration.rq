@@ -4,6 +4,8 @@ SELECT DISTINCT
   ?linkTo
   ?linkToLabel 
   ?typeOfLink
+  ?instanceOf
+  ?instanceOfLabel
 WHERE {
   VALUES ?perpetrator { SVAR:SUBPERPETRATOR }
   # Owner/parent/child orgs.  #  add Owner of?
@@ -33,7 +35,7 @@ WHERE {
     BIND(?perpetrator AS ?linkTo)
     BIND("partOf" AS ?typeOfLink)
   }
-  
+  OPTIONAL { ?item wdt:P31 ?instanceOf. }
+
   SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
 }
-LIMIT 1000

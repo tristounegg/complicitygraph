@@ -4,6 +4,8 @@ SELECT DISTINCT
   ?linkTo
   ?linkToLabel 
   ?typeOfLink
+  ?instanceOf
+  ?instanceOfLabel
 WHERE {
   VALUES ?org { JSVAR:ORGID }  
 
@@ -31,7 +33,9 @@ WHERE {
     BIND("hasBoardMember" AS ?typeOfLink)
   }
   # Optional: get labels for items and orgs
+  OPTIONAL { ?item wdt:P31 ?instanceOf. }
   OPTIONAL { ?item rdfs:label ?itemLabel. FILTER(LANG(?itemLabel) = "en") }
   OPTIONAL { ?org rdfs:label ?linkToLabel. FILTER(LANG(?linkToLabel) = "en") }
   BIND(?org AS ?linkTo)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
 }

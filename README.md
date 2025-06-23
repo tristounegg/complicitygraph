@@ -12,4 +12,9 @@ Licenced under [GNU GPL 3.0](https://www.gnu.org/licenses/gpl-3.0.html).
 - [ ]  filter first iteration base on "instace of" (allow everything exept from public institutions ? )
 - [ ]  make colors depend on instance type 
 - [ ]  create legend 
-  - [ ]  display instance type color
+  - [ ]  display color distance
+  - [ ]  display shape instanceof
+- [ ] improove navigation
+  - [ ] add an html section : who is on this graph ? 
+  - [ ] add an html section : what is on this graph ? 
+

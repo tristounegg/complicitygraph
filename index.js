@@ -135,6 +135,7 @@ async function getGraphData(countries) {
     let data3 = await fetchWikiData(req3)
     console.log("organisationsrecursive", data3);
 
+    // to do : ceo of first iteration ? 
 
     loadingGraph.text("Fetching extra graph links from WikiData...");
     // console.log(dataExtra);
@@ -148,12 +149,14 @@ async function getGraphData(countries) {
                 id: line.item.replace("http://www.wikidata.org/entity/","wd:"), 
                 label: line.itemLabel + " (" + line.countryLabel + ")",
                 typeOfLink: line["typeOfLink"],
+                instanceOf: line["instanceOfLabel"],
                 group : 1   
             }) ;
             nodes.push({
                 id: line.linkTo.replace("http://www.wikidata.org/entity/","wd:"), 
                 label: line["linkToLabel"],
                 typeOfLink: line["typeOfLink"],
+                instanceOf: line["instanceOfLabel"],
                 group : 2  
             }) ;
             links.push({
@@ -170,12 +173,14 @@ async function getGraphData(countries) {
                 id: line.item.replace("http://www.wikidata.org/entity/","wd:"), 
                 label: line.itemLabel + " (" + line.countryLabel + ")",
                 typeOfLink: line["typeOfLink"],
+                instanceOf: line["instanceOfLabel"],
                 group : 3    
             }) ;
             nodes.push({
                 id: line.linkTo.replace("http://www.wikidata.org/entity/", "wd:"), 
                 label: line["linkToLabel"],
                 typeOfLink: line["typeOfLink"],
+                instanceOf: line["instanceOfLabel"],
                 group : 2
             }) ;
             links.push({
@@ -194,12 +199,14 @@ async function getGraphData(countries) {
                 id: line.item.replace("http://www.wikidata.org/entity/","wd:"), 
                 label: line.itemLabel + " (" + line.countryLabel + ")",
                 typeOfLink: line["typeOfLink"],
+                instanceOf: line["instanceOfLabel"],
                 group : 4   
             }) ;
             nodes.push({
                 id: line.linkTo.replace("http://www.wikidata.org/entity/","wd:"), 
                 label: line["linkToLabel"],
                 typeOfLink: line["typeOfLink"],
+                instanceOf: line["instanceOfLabel"],
                 group : 3
             }) ;
             links.push({
@@ -214,7 +221,6 @@ async function getGraphData(countries) {
     const candidateRootsIDs = nodes
     .filter(node => node.typeOfLink === "isPerpetrator")
         .map(node => node.id);
-    console.log("candidate roots IDs", candidateRootsIDs);
     nodes = nodes.filter((e, i) => nodes.findIndex(a => a.id === e.id) === i); // get only unique nodes.
     
     links.forEach(function(link){
@@ -426,7 +432,7 @@ function drawGraph(graph) {
         if (node.group == 4) containerRecursion.addChild(node.gfx);
         // stage.addChild(node.gfx);
 
-        if (["isCeo", "hasDirector", "hasChairPerson", "hasBoardMember"].includes(node.typeOfLink)) {
+        if (["human"].includes(node.instanceOf)) {
             node.gfx.drawRect(-node.radius, -node.radius, node.radius * 2, node.radius * 2)
         }
         // main persecutors 
@@ -457,6 +463,7 @@ function drawGraph(graph) {
             containerCEO.addChild(node.lgfx);
         }
         
+        // recursion
         if (node.group == 4) {
             node.radius = 1
             node.lgfx = new PIXI.Text(
