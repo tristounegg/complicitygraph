@@ -24,6 +24,12 @@ WHERE {
     BIND(?chair AS ?item)
     BIND("hasChairPerson" AS ?typeOfLink)
   }
+    UNION
+  {
+    ?org wdt:P3320 ?boardmember.
+    BIND(?boardmember AS ?item)
+    BIND("hasBoardMember" AS ?typeOfLink)
+  }
   # Optional: get labels for items and orgs
   OPTIONAL { ?item rdfs:label ?itemLabel. FILTER(LANG(?itemLabel) = "en") }
   OPTIONAL { ?org rdfs:label ?linkToLabel. FILTER(LANG(?linkToLabel) = "en") }

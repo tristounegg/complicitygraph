@@ -133,7 +133,7 @@ async function getGraphData(countries) {
     let sparql3 = await (await fetch('sparql/Iteration.rq')).text(); 
     let req3 = endpoint + encodeURIComponent(sparql3.replace("SVAR:SUBPERPETRATOR",organisationsWDid.join(" ")).replace("/#.*/gm",''));
     let data3 = await fetchWikiData(req3)
-    console.log("organisations", data3);
+    console.log("organisationsrecursive", data3);
 
 
     loadingGraph.text("Fetching extra graph links from WikiData...");
@@ -146,12 +146,14 @@ async function getGraphData(countries) {
             perpetrators.push(line.item.replace("http://www.wikidata.org/entity/","wd:"));
             nodes.push({
                 id: line.item.replace("http://www.wikidata.org/entity/","wd:"), 
-                label : line.itemLabel + " (" + line.countryLabel + ")" ,
+                label: line.itemLabel + " (" + line.countryLabel + ")",
+                typeOfLink: line["typeOfLink"],
                 group : 1   
             }) ;
             nodes.push({
                 id: line.linkTo.replace("http://www.wikidata.org/entity/","wd:"), 
-                label : line["linkToLabel"],
+                label: line["linkToLabel"],
+                typeOfLink: line["typeOfLink"],
                 group : 2  
             }) ;
             links.push({
@@ -166,12 +168,14 @@ async function getGraphData(countries) {
             perpetrators.push(line.item.replace("http://www.wikidata.org/entity/","wd:"));
             nodes.push({
                 id: line.item.replace("http://www.wikidata.org/entity/","wd:"), 
-                label : line.itemLabel + " (" + line.countryLabel + ")" ,
+                label: line.itemLabel + " (" + line.countryLabel + ")",
+                typeOfLink: line["typeOfLink"],
                 group : 3    
             }) ;
             nodes.push({
-                id: line.linkTo.replace("http://www.wikidata.org/entity/","wd:"), 
-                label : line["linkToLabel"],
+                id: line.linkTo.replace("http://www.wikidata.org/entity/", "wd:"), 
+                label: line["linkToLabel"],
+                typeOfLink: line["typeOfLink"],
                 group : 2
             }) ;
             links.push({
@@ -188,12 +192,14 @@ async function getGraphData(countries) {
             perpetrators.push(line.item.replace("http://www.wikidata.org/entity/","wd:"));
             nodes.push({
                 id: line.item.replace("http://www.wikidata.org/entity/","wd:"), 
-                label : line.itemLabel + " (" + line.countryLabel + ")" ,
+                label: line.itemLabel + " (" + line.countryLabel + ")",
+                typeOfLink: line["typeOfLink"],
                 group : 4   
             }) ;
             nodes.push({
                 id: line.linkTo.replace("http://www.wikidata.org/entity/","wd:"), 
-                label : line["linkToLabel"],
+                label: line["linkToLabel"],
+                typeOfLink: line["typeOfLink"],
                 group : 3
             }) ;
             links.push({
@@ -204,13 +210,18 @@ async function getGraphData(countries) {
         }
         
     });
+
+    const candidateRootsIDs = nodes
+    .filter(node => node.typeOfLink === "isPerpetrator")
+        .map(node => node.id);
+    console.log("candidate roots IDs", candidateRootsIDs);
     nodes = nodes.filter((e, i) => nodes.findIndex(a => a.id === e.id) === i); // get only unique nodes.
     
     links.forEach(function(link){
         if (!link.target["linkCount"]) link.target["linkCount"] = 0;
         link.target["linkCount"]++;    
     });
-    // Remove nodes in group 4 (first iteration) with linkCount < 1
+    // Remove nodes in group 4 (first iteration) with linkCount < 1 
     const nodesToKeep = nodes.filter(node => {
     return !(node.group === 4 && (!node.linkCount || node.linkCount < 1));
     });
@@ -225,6 +236,22 @@ async function getGraphData(countries) {
     nodes = nodesToKeep;
     links = linksToKeep;
 
+
+    // colour
+    console.log("nodes get graph data", nodes, "links", links);
+    const candidateRootsIDSet = new Set(candidateRootsIDs);
+    const candidateRoots = nodes
+    .filter(node => candidateRootsIDSet.has(node.id))
+    .map(node => node.id);
+    console.log("candidate roots", candidateRoots);
+    distances = computeDistancesFromRoot(candidateRoots, nodes, links)
+    let maxDistance = Math.max(...Object.values(distances));
+    nodes.forEach((node) => {
+        node.colour = distances[node.id];    
+    });
+    console.log("distances", distances, "maxDistance", maxDistance);
+
+
     graph = { links: links, nodes: nodes };
     console.log("nodes", graph.nodes, "links", graph.links)
     // store the full graph for later use
@@ -234,11 +261,63 @@ async function getGraphData(countries) {
 
 
 let width = screen.availWidth, height = screen.availHeight;
-function colour(num) {
-    if (num == 3) return 0x969af1 // should be CEO
-    if (num==4) return 0x44d15e
-    if (num > 1) return 0xD01B1B
-    return 0x47abd8 ;
+
+// color stuff
+// function colour(num) {
+//     if (num == 3) return 0x969af1 // should be
+//     if (num==4) return 0x44d15e
+//     if (num > 1) return 0xD01B1B
+//     return 0x47abd8 ;
+// }
+
+function computeDistancesFromRoot(candidateRoots, nodes, links) {
+    let distances = {};
+    let visited = new Set();
+    let queue = [];
+    // Initialize queue and distances with all roots at distance 0
+    candidateRoots.forEach(rootId => {
+        distances[rootId] = 0;
+        queue.push({ id: rootId, dist: 0 });
+        visited.add(rootId);
+    });
+
+    while (queue.length > 0) {
+        let { id, dist } = queue.shift();
+
+        // Get neighbors of the current node
+        let neighbors = links
+            .filter(l => {
+                const sid = typeof l.source === 'object' ? l.source.id : l.source;
+                const tid = typeof l.target === 'object' ? l.target.id : l.target;
+                return sid === id || tid === id;
+            })
+            .map(l => {
+                const sid = typeof l.source === 'object' ? l.source.id : l.source;
+                const tid = typeof l.target === 'object' ? l.target.id : l.target;
+                return sid === id ? tid : sid;
+            });
+
+        neighbors.forEach(nid => {
+            // If not visited or found a shorter path to nid, update distance
+            if (!visited.has(nid) || distances[nid] > dist + 1) {
+                distances[nid] = dist + 1;
+                if (!visited.has(nid)) {
+                    visited.add(nid);
+                    queue.push({ id: nid, dist: dist + 1 });
+                }
+            }
+        });
+    }
+
+    return distances;
+}
+
+let interpolate = d3.interpolateRgb("#D01B1B", "#2930f8"); // violet → red
+function getInterpolatedColor(t) {
+    const rgbString = interpolate(t);
+    const rgb = d3.color(rgbString);  
+    // Convert to 0xRRGGBB format
+    return (rgb.r << 16) + (rgb.g << 8) + rgb.b;
 }
 
 /*
@@ -249,6 +328,17 @@ let colour = (function() {
 */
 
 let simulation = d3.forceSimulation()
+            // to increadi link distance
+            // .force('link', d3.forceLink()
+            // .id(d => d.id)
+            // .distance(link => {
+            //     // Increase distance if source or target is group 3 (CEO)
+            //     if ((typeof link.source === 'object' ? link.source.group : null)in [3,4] || 
+            //         (typeof link.target === 'object' ? link.target.group : null) in [3,4]) {
+            //         return 150;  // You can tweak this value
+            //     }
+            //     return 50; // default link distance
+            // })
     .force('link', d3.forceLink().id((d) => d.id))
     .force('charge', d3.forceManyBody().strength(d => d.group == 2 ? -500 :  -5))
     // .force('center', d3.forceCenter(width / 2, height / 2) )
@@ -313,7 +403,7 @@ function drawGraph(graph) {
     graph.nodes.forEach((node) => {
         node.gfx = new PIXI.Graphics();
         node.gfx.lineStyle(0.5, 0xFFFFFF);
-        node.gfx.beginFill(colour(node.group));
+        node.gfx.beginFill(getInterpolatedColor(distances[node.id] / Math.max(...Object.values(distances))));
         node.gfx.drawCircle(0, 0, node.radius );
         node.gfx.interactive = true;
         node.gfx.hitArea = new PIXI.Circle(0, 0, node.radius);
@@ -336,14 +426,16 @@ function drawGraph(graph) {
         if (node.group == 4) containerRecursion.addChild(node.gfx);
         // stage.addChild(node.gfx);
 
-        
+        if (["isCeo", "hasDirector", "hasChairPerson", "hasBoardMember"].includes(node.typeOfLink)) {
+            node.gfx.drawRect(-node.radius, -node.radius, node.radius * 2, node.radius * 2)
+        }
         // main persecutors 
         if (node.group == 2) {
             node.lgfx = new PIXI.Text(
                 node.label, {
                     fontFamily : 'Maven Pro', 
                     fontSize: 9 + node.radius / 2, 
-                    fill : colour(node.group), 
+                    fill: node.colour, 
                     align : 'center'
                 }
             );
@@ -357,7 +449,7 @@ function drawGraph(graph) {
                 node.label, {
                     fontFamily : 'Maven Pro', 
                     fontSize: 5 + node.radius / 2, 
-                    fill : colour(node.group), 
+                    fill : node.colour, 
                     align : 'center'
                 }
             );
@@ -371,7 +463,7 @@ function drawGraph(graph) {
                 node.label, {
                     fontFamily : 'Maven Pro', 
                     fontSize: 4 + node.radius / 2, 
-                    fill : colour(node.group), 
+                    fill : node.colour, 
                     align : 'center'
                 }
             );
@@ -408,8 +500,8 @@ function drawGraph(graph) {
             let { x, y, gfx, lgfx, radius } = node;
             gfx.position = new PIXI.Point(x, y);
             if (node.group == 2) lgfx.position = new PIXI.Point(x + radius / 2, y + radius / 2);
-            if (node.group == 3) lgfx.position = new PIXI.Point(x - radius / 2, y - radius / 2);
-            if (node.group == 4) lgfx.position = new PIXI.Point(x - radius / 2, y - radius / 2);
+            // if (node.group == 3) lgfx.position = new PIXI.Point(x - radius / 2, y - radius / 2);
+            // if (node.group == 4) lgfx.position = new PIXI.Point(x - radius / 2, y - radius / 2);
         });
         links.clear();
         links.alpha = 0.6;
