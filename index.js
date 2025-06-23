@@ -75,6 +75,24 @@ async function fetchWikiData(req) {
     return data ;
 }
 
+async function fetchWikiDataPOST(query) {
+  const endpoint = 'https://query.wikidata.org/';
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/sparql-query',
+      'Accept': 'application/sparql-results+json',
+    },
+    body: query,
+  });
+
+  if (!response.ok) {
+    throw new Error(`SPARQL request failed: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
 /** Constructs a list of countnries to choose from. 
  * On first run, launch graph construction. */ 
 async function getCountryList() { 
@@ -111,137 +129,115 @@ async function getCountryList() {
     countriesLoaded.style('display', 'block');
 }
 
-let CEOData; 
+function pushItemsToObject(nodes, links, items) {
+    items.forEach((line) => {
+        if (typeof line.item !== "undefined" && typeof line.linkTo !== "undefined") {
+            perpetrators.push(line.item.replace("http://www.wikidata.org/entity/", "wd:"));
+            nodes.push({
+                id: line.item.replace("http://www.wikidata.org/entity/", "wd:"),
+                label: line.itemLabel + " (" + line.countryLabel + ")",
+                typeOfLink: line["typeOfLink"],
+                instanceOf: line["instanceOfLabel"],
+                group: 1
+            });
+            nodes.push({
+                id: line.linkTo.replace("http://www.wikidata.org/entity/", "wd:"),
+                label: line["linkToLabel"],
+                typeOfLink: line["typeOfLink"],
+                instanceOf: line["instanceOfLabel"],
+                group: 2
+            });
+            links.push({
+                source: line.item.replace("http://www.wikidata.org/entity/", "wd:"),
+                target: line.linkTo.replace("http://www.wikidata.org/entity/", "wd:"),
+                value: 0.5
+            });
+        }
+    });
+    // remove duplicates but keep isPerpetrator to allow candidateRootsIDs to find them
+    const nodeMap = new Map();
+    nodes.forEach(node => {
+        const existing = nodeMap.get(node.id);
+
+        if (!existing) {
+            nodeMap.set(node.id, node);
+        } else if (node.typeOfLink === "isPerpetrator") {
+            nodeMap.set(node.id, node); // overwrite with higher-priority type
+        }
+    });
+
+    nodes = Array.from(nodeMap.values());
+    return { nodes, links };
+}
+    
 let perpetrators = []
 /** Fetches the graph data from wikidata 
  * @param countries An array of countries
 */
 async function getGraphData(countries) {   
+    let nodes = [];
+    let links = [];
+
     loadinginfo.style('display', 'block');
     loadingGraph.style('display', 'block');
     let sparql1 = await (await fetch('sparql/Base.rq')).text(); 
     let req = endpoint + encodeURIComponent(sparql1.replace("JSVAR:COUNTRIES",countries.join(" ")).replace("/#.*/gm",''));
-    let data = await fetchWikiData(req)
+    let data = await fetchWikiData(req);
+    ({ nodes, links } = pushItemsToObject(nodes, links, data));
     console.log("organisations", data);
 
     let organisationsWDid = data.map(d => d.item.replace("http://www.wikidata.org/entity/","wd:"));
     let sparql2 = await (await fetch('sparql/CEO.rq')).text();
     let reqExtra = endpoint + encodeURIComponent(sparql2.replace("JSVAR:ORGID",organisationsWDid.join(" ")).replace("/#.*/gm",''));
-    let CEOData = await fetchWikiData(reqExtra)
+    let CEOData = await fetchWikiData(reqExtra);
+    ({ nodes, links } = pushItemsToObject(nodes, links, CEOData));
     console.log("CEO data", CEOData);
     
-    let sparql3 = await (await fetch('sparql/Iteration.rq')).text(); 
-    let req3 = endpoint + encodeURIComponent(sparql3.replace("SVAR:SUBPERPETRATOR",organisationsWDid.join(" ")).replace("/#.*/gm",''));
-    let data3 = await fetchWikiData(req3)
-    console.log("organisationsrecursive", data3);
-
-    // to do : ceo of first iteration ? 
-
     loadingGraph.text("Fetching extra graph links from WikiData...");
-    // console.log(dataExtra);
-    // let perpetrators = []; // for later filtering out ideology nodes with no incoming perpetrators
-    let nodes = [];
-    let links = [];
-    data.forEach((line)=>{ 
-        if (typeof line.item !== "undefined" & typeof line.linkTo !== "undefined") { 
-            perpetrators.push(line.item.replace("http://www.wikidata.org/entity/","wd:"));
-            nodes.push({
-                id: line.item.replace("http://www.wikidata.org/entity/","wd:"), 
-                label: line.itemLabel + " (" + line.countryLabel + ")",
-                typeOfLink: line["typeOfLink"],
-                instanceOf: line["instanceOfLabel"],
-                group : 1   
-            }) ;
-            nodes.push({
-                id: line.linkTo.replace("http://www.wikidata.org/entity/","wd:"), 
-                label: line["linkToLabel"],
-                typeOfLink: line["typeOfLink"],
-                instanceOf: line["instanceOfLabel"],
-                group : 2  
-            }) ;
-            links.push({
-                source: line.item.replace("http://www.wikidata.org/entity/","wd:"),
-                target: line.linkTo.replace("http://www.wikidata.org/entity/","wd:"),
-                value: 0.5
-            });
-        }
-    });
-    CEOData.forEach((line)=>{ 
-        if (typeof line.item !== "undefined" & typeof line.linkTo !== "undefined") { 
-            perpetrators.push(line.item.replace("http://www.wikidata.org/entity/","wd:"));
-            nodes.push({
-                id: line.item.replace("http://www.wikidata.org/entity/","wd:"), 
-                label: line.itemLabel + " (" + line.countryLabel + ")",
-                typeOfLink: line["typeOfLink"],
-                instanceOf: line["instanceOfLabel"],
-                group : 3    
-            }) ;
-            nodes.push({
-                id: line.linkTo.replace("http://www.wikidata.org/entity/", "wd:"), 
-                label: line["linkToLabel"],
-                typeOfLink: line["typeOfLink"],
-                instanceOf: line["instanceOfLabel"],
-                group : 2
-            }) ;
-            links.push({
-                source: line.item.replace("http://www.wikidata.org/entity/","wd:"),
-                target: line.linkTo.replace("http://www.wikidata.org/entity/","wd:"),
-                value: 0.5
-            });
-        }
-        
-    });
     
-    data3.forEach((line) => { 
-        if (typeof line.item !== "undefined" & typeof line.linkTo !== "undefined") { 
-            perpetrators.push(line.item.replace("http://www.wikidata.org/entity/","wd:"));
-            nodes.push({
-                id: line.item.replace("http://www.wikidata.org/entity/","wd:"), 
-                label: line.itemLabel + " (" + line.countryLabel + ")",
-                typeOfLink: line["typeOfLink"],
-                instanceOf: line["instanceOfLabel"],
-                group : 4   
-            }) ;
-            nodes.push({
-                id: line.linkTo.replace("http://www.wikidata.org/entity/","wd:"), 
-                label: line["linkToLabel"],
-                typeOfLink: line["typeOfLink"],
-                instanceOf: line["instanceOfLabel"],
-                group : 3
-            }) ;
-            links.push({
-                source: line.item.replace("http://www.wikidata.org/entity/","wd:"),
-                target: line.linkTo.replace("http://www.wikidata.org/entity/","wd:"),
-                value: 0.5
-            });
-        }
-        
-    });
+    // france / isral / cac40
+    const toRemove = ["wd:Q1450662", "wd:Q801", "Q648828"]
+
+    let sparql3 = await (await fetch('sparql/Iteration.rq')).text(); 
+    // we remove big organization : french republic / Israel
+    organisationsWDid = organisationsWDid.filter(id => !toRemove.includes(id));
+    let req3 = endpoint + encodeURIComponent(sparql3.replace("SVAR:SUBPERPETRATOR",organisationsWDid.join(" ")).replace("/#.*/gm",''));
+    let data3 = await fetchWikiData(req3);
+    ({ nodes, links } = pushItemsToObject(nodes, links, data3));
+    console.log("organisationsrecursive", data3);
+    console.log("nodes", nodes);
+
+    //  second recursion, not working, not clean
+    // organisationsWDid = nodes.map(d => d.id);
+    // organisationsWDid = organisationsWDid.filter(id => !toRemove.includes(id));
+    // const half = Math.ceil(organisationsWDid.length / 2);
+    // const firstHalf = organisationsWDid.slice(0, half);
+    // const secondHalf = organisationsWDid.slice(half);
+
+    // let sparql4 = await (await fetch('sparql/Iteration.rq')).text(); 
+    // let req4 = endpoint + encodeURIComponent(sparql4.replace("SVAR:SUBPERPETRATOR",firstHalf.join(" ")).replace("/#.*/gm",''));
+    // let data4_1 = await fetchWikiData(req4);
+    // ({ nodes, links } = pushItemsToObject(nodes, links, data4_1));
+    // console.log("organisationsrecursive2 - first half", data4_1);
+
+    // let req4_2 = endpoint + encodeURIComponent(sparql4.replace("SVAR:SUBPERPETRATOR",secondHalf.join(" ")).replace("/#.*/gm",''));
+    // let data4_2 = await fetchWikiData(req4_2);
+    // ({ nodes, links } = pushItemsToObject(nodes, links, data4_2));
+    // console.log("organisationsrecursive2 - first half", data4_2);
+
+
+
+
+        // to do : ceo of first iteration ? 
 
     const candidateRootsIDs = nodes
     .filter(node => node.typeOfLink === "isPerpetrator")
         .map(node => node.id);
-    nodes = nodes.filter((e, i) => nodes.findIndex(a => a.id === e.id) === i); // get only unique nodes.
     
     links.forEach(function(link){
         if (!link.target["linkCount"]) link.target["linkCount"] = 0;
         link.target["linkCount"]++;    
     });
-    // Remove nodes in group 4 (first iteration) with linkCount < 1 
-    const nodesToKeep = nodes.filter(node => {
-    return !(node.group === 4 && (!node.linkCount || node.linkCount < 1));
-    });
-    const nodesSet = new Set(nodesToKeep);
-    const nodeIdsToKeep = new Set(nodesToKeep.map(node => node.id));
-    const linksToKeep = links.filter(link => {
-    // If source/target are objects, use their id property, otherwise use them directly
-    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-    return nodeIdsToKeep.has(sourceId) && nodeIdsToKeep.has(targetId);
-    });
-    nodes = nodesToKeep;
-    links = linksToKeep;
-
 
     // colour
     console.log("nodes get graph data", nodes, "links", links);
@@ -449,34 +445,6 @@ function drawGraph(graph) {
             containerIdeologies.addChild(node.lgfx);
         }
 
-        // ceo of main
-        if (node.group == 3) {
-            node.lgfx = new PIXI.Text(
-                node.label, {
-                    fontFamily : 'Maven Pro', 
-                    fontSize: 5 + node.radius / 2, 
-                    fill : node.colour, 
-                    align : 'center'
-                }
-            );
-            node.lgfx.resolution = 2; // so that the text isn't blury
-            containerCEO.addChild(node.lgfx);
-        }
-        
-        // recursion
-        if (node.group == 4) {
-            node.radius = 1
-            node.lgfx = new PIXI.Text(
-                node.label, {
-                    fontFamily : 'Maven Pro', 
-                    fontSize: 4 + node.radius / 2, 
-                    fill : node.colour, 
-                    align : 'center'
-                }
-            );
-            node.lgfx.resolution = 2; // so that the text isn't blury
-            containerRecursion.addChild(node.lgfx);
-        }
     });
 
 

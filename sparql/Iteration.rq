@@ -15,6 +15,12 @@ WHERE {
     BIND(?perpetrator AS ?linkTo)
     BIND("ownedBy" AS ?typeOfLink)
   }
+  UNION {
+    ?perpetrator wdt:P1830+ ?ownerOf.
+    BIND(?ownerOf AS ?item)
+    BIND(?perpetrator AS ?linkTo)
+    BIND("ownerOf" AS ?typeOfLink)
+  }
  
   UNION {
   ?perpetrator wdt:P355+ ?childOrg.
