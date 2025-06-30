@@ -49,5 +49,5 @@ WHERE {
 
   OPTIONAL { ?item wdt:P31 ?instanceOf. }
 
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,es,fr". }
 }

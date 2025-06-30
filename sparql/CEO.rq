@@ -37,5 +37,5 @@ WHERE {
   OPTIONAL { ?item rdfs:label ?itemLabel. FILTER(LANG(?itemLabel) = "en") }
   OPTIONAL { ?org rdfs:label ?linkToLabel. FILTER(LANG(?linkToLabel) = "en") }
   BIND(?org AS ?linkTo)
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,es,fr". }
 }

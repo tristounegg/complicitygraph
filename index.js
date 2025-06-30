@@ -76,22 +76,23 @@ async function fetchWikiData(req) {
 }
 
 async function fetchWikiDataPOST(query) {
-  const endpoint = 'https://query.wikidata.org/';
+  const endpoint = 'https://query.wikidata.org/sparql';
 
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/sparql-query',
+      'Content-Type': 'application/x-www-form-urlencoded', 
       'Accept': 'application/sparql-results+json',
     },
-    body: query,
+    body: `query=${(query)}`,  
   });
 
   if (!response.ok) {
-    throw new Error(`SPARQL request failed: ${response.status} ${response.statusText}`);
+    throw new Error(`HTTP error ${response.status}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  return data;
 }
 /** Constructs a list of countnries to choose from. 
  * On first run, launch graph construction. */ 
@@ -131,29 +132,41 @@ async function getCountryList() {
 
 function pushItemsToObject(nodes, links, items) {
     items.forEach((line) => {
-        if (typeof line.item !== "undefined" && typeof line.linkTo !== "undefined") {
-            perpetrators.push(line.item.replace("http://www.wikidata.org/entity/", "wd:"));
+        if (line.item && line.linkTo) {
+            const itemId = line.item.value.replace("http://www.wikidata.org/entity/", "wd:");
+            const linkToId = line.linkTo.value.replace("http://www.wikidata.org/entity/", "wd:");
+
+            const itemLabel = line.itemLabel?.value || "Unknown";
+            const countryLabel = line.countryLabel?.value || "";
+            const typeOfLink = line.typeOfLink?.value || "relatedTo";
+            const instanceOfLabel = line.instanceOfLabel?.value || "unknown";
+
+            perpetrators.push(itemId);
+
             nodes.push({
-                id: line.item.replace("http://www.wikidata.org/entity/", "wd:"),
-                label: line.itemLabel + " (" + line.countryLabel + ")",
-                typeOfLink: line["typeOfLink"],
-                instanceOf: line["instanceOfLabel"],
+                id: itemId,
+                label: `${itemLabel}${countryLabel ? " (" + countryLabel + ")" : ""}`,
+                typeOfLink: typeOfLink,
+                instanceOf: instanceOfLabel,
                 group: 1
             });
+
             nodes.push({
-                id: line.linkTo.replace("http://www.wikidata.org/entity/", "wd:"),
-                label: line["linkToLabel"],
-                typeOfLink: line["typeOfLink"],
-                instanceOf: line["instanceOfLabel"],
+                id: linkToId,
+                label: line.linkToLabel?.value || "Unknown",
+                typeOfLink: typeOfLink,
+                instanceOf: instanceOfLabel,
                 group: 2
             });
+
             links.push({
-                source: line.item.replace("http://www.wikidata.org/entity/", "wd:"),
-                target: line.linkTo.replace("http://www.wikidata.org/entity/", "wd:"),
+                source: itemId,
+                target: linkToId,
                 value: 0.5
             });
         }
     });
+
     // remove duplicates but keep isPerpetrator to allow candidateRootsIDs to find them
     const nodeMap = new Map();
     nodes.forEach(node => {
@@ -181,17 +194,17 @@ async function getGraphData(countries) {
     loadinginfo.style('display', 'block');
     loadingGraph.style('display', 'block');
     let sparql1 = await (await fetch('sparql/Base.rq')).text(); 
-    let req = endpoint + encodeURIComponent(sparql1.replace("JSVAR:COUNTRIES",countries.join(" ")).replace("/#.*/gm",''));
-    let data = await fetchWikiData(req);
-    ({ nodes, links } = pushItemsToObject(nodes, links, data));
-    console.log("organisations", data);
+    let req = encodeURIComponent(sparql1.replace("JSVAR:COUNTRIES",countries.join(" ")).replace("/#.*/gm",''));
+    let data = await fetchWikiDataPOST(req);
+    console.log("organisations", data.results.bindings);
+    ({ nodes, links } = pushItemsToObject(nodes, links, data.results.bindings));
 
-    let organisationsWDid = data.map(d => d.item.replace("http://www.wikidata.org/entity/","wd:"));
+    let organisationsWDid = data.results.bindings.map(d => d.item.value.replace("http://www.wikidata.org/entity/","wd:"));
     let sparql2 = await (await fetch('sparql/CEO.rq')).text();
-    let reqExtra = endpoint + encodeURIComponent(sparql2.replace("JSVAR:ORGID",organisationsWDid.join(" ")).replace("/#.*/gm",''));
-    let CEOData = await fetchWikiData(reqExtra);
-    ({ nodes, links } = pushItemsToObject(nodes, links, CEOData));
-    console.log("CEO data", CEOData);
+    let reqExtra = encodeURIComponent(sparql2.replace("JSVAR:ORGID",organisationsWDid.join(" ")).replace("/#.*/gm",''));
+    let CEOData = await fetchWikiDataPOST(reqExtra);
+    console.log("CEO data", CEOData.results.bindings);
+    ({ nodes, links } = pushItemsToObject(nodes, links, CEOData.results.bindings));
     
     loadingGraph.text("Fetching extra graph links from WikiData...");
     
@@ -201,11 +214,12 @@ async function getGraphData(countries) {
     let sparql3 = await (await fetch('sparql/Iteration.rq')).text(); 
     // we remove big organization : french republic / Israel
     organisationsWDid = organisationsWDid.filter(id => !toRemove.includes(id));
-    let req3 = endpoint + encodeURIComponent(sparql3.replace("SVAR:SUBPERPETRATOR",organisationsWDid.join(" ")).replace("/#.*/gm",''));
-    let data3 = await fetchWikiData(req3);
-    ({ nodes, links } = pushItemsToObject(nodes, links, data3));
-    console.log("organisationsrecursive", data3);
+    let req3 = encodeURIComponent(sparql3.replace("SVAR:SUBPERPETRATOR",organisationsWDid.join(" ")).replace("/#.*/gm",''));
+    let data3 = await fetchWikiDataPOST(req3);
+    console.log("organisationsrecursive", data3.results.bindings);
+    ({ nodes, links } = pushItemsToObject(nodes, links, data3.results.bindings));
     console.log("nodes", nodes);
+
 
     //  second recursion, not working, not clean
     // organisationsWDid = nodes.map(d => d.id);
