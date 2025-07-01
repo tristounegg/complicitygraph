@@ -1,10 +1,6 @@
 let endpoint = "https://query.wikidata.org/sparql?query=";
 // messages:
 let loadinginfo = d3.select("#loadinginfo");
-let loadingCountries = d3.select("#loadingCountries");
-let countriesLoaded = d3.select("#countriesLoaded");
-let loadingInstitution = d3.select("#loadingCountries");
-let institutionLoaded = d3.select("#countriesLoaded");
 let loadingGraph = d3.select("#loadingGraph");
 let constructingGraph = d3.select("#constructingGraph");
 let updatingGraph = d3.select("#updatingGraph");
@@ -105,7 +101,6 @@ async function fetchWikiDataPOST(query) {
  * On first run, launch graph construction. */ 
 async function getCountryList() { 
     loadinginfo.style('display', 'block');
-    loadingCountries.style('display', 'block');
     let sparql = await (await fetch('sparql/CountryList.rq')).text();
     let req = endpoint + encodeURIComponent(sparql.replace("/#.*/gm",''));
     let countries = await fetchWikiData(req);
@@ -133,21 +128,15 @@ async function getCountryList() {
         ;
     });
     Europe.forEach(cval => document.getElementById(cval.replace("wd:","c")).checked = true);
-    loadingCountries.style('display', 'none');
     countriesLoaded.style('display', 'block');
 }
 
-async function getInstitutionList(nodes) {
-    console.log("get institution list with nodes", nodes);
-    loadinginfo.style('display', 'block');
-    loadingInstitution.style('display', 'block');
-    nodes.sort((a, b) => (a["label"] > b["label"]) ? 1 : ((b["label"] > a["label"]) ? -1 : 0))
-    
-    institutionNodes = nodes.filter(node => node.instanceOf !== "human");
-    let institutionDiv = d3.select("#institutionselector");
-    institutionDiv.append("h3").text("Institutions");
-    institutionNodes.forEach(c=>{
-        let newdiv = institutionDiv.append("div")
+async function buildItemList(nodes, listName) {
+    let div = d3.select(`#${listName}selector`);
+    console.log("build item list with ", `#${listName}selector`, "and div", div, "and nodes", nodes);
+    div.append("h3").text(listName);
+    nodes.forEach(c=>{
+        let newdiv = div.append("div")
         let cval = c.id.replace("wd:", "http://www.wikidata.org/entity/");
         let cid = cval.replace("http://www.wikidata.org/entity/","c")
         newdiv
@@ -166,9 +155,21 @@ async function getInstitutionList(nodes) {
             .text(c["label"])
         ;
     });
-    loadingInstitution.style('display', 'none');
-    institutionLoaded.style('display', 'block');
+    console.log("div is now ", div);
 }
+
+async function getInstitutionList(nodes) {
+    console.log("get institution list with nodes", nodes);
+    loadinginfo.style('display', 'block');
+    nodes.sort((a, b) => (a["label"] > b["label"]) ? 1 : ((b["label"] > a["label"]) ? -1 : 0))
+    
+    institutionNodes = nodes.filter(node => node.instanceOf !== "human");
+    humanNodes = nodes.filter(node => node.instanceOf == "human");
+    
+    await buildItemList(institutionNodes, "institutions");
+    await buildItemList(humanNodes, "humans");
+}
+
 function pushItemsToObject(nodes, links, items) {
     items.forEach((line) => {
         if (line.item && line.linkTo) {

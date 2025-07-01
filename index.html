@@ -55,7 +55,7 @@
             height: 30px
         }
 
-        #institutionselector {
+        #institutionsselector {
             position: absolute;
             font-size: 11px;
             top: 50px;
@@ -76,11 +76,22 @@
             z-index: 10000
         }
 
-        #title {
+        #rightPanel {
             position: absolute;
-            right: 10px;
             top: 10px;
-            width: 200px
+            right: 10px;
+            width: 15%;
+            height: calc(100% - 20px);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            margin-top: 10px;
+        }
+
+        #humansselector {
+            height: calc(100% - 30px);
+            overflow-y: scroll;
+            width: 100%;
         }
 
         h1 {
@@ -112,11 +123,14 @@
 
 <body>
     <!-- <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=default"></script> -->
-    <div id="title">
-        <h1>ComplicityGraph</h1>
-        <div class="subtitle">explorer of palestinian genocide accomplices using WikiData</div>
-        <div class="sourcedocs">Source : WikiData (live requests to SPARQL endpoint starting with
-            https://www.wikidata.org/wiki/Q124086054)</div>
+    <div id="rightPanel">
+        <div id="title">
+            <h1>ComplicityGraph</h1>
+            <div class="subtitle">explorer of palestinian genocide accomplices using WikiData</div>
+            <div class="sourcedocs">Source : WikiData (live requests to SPARQL endpoint starting with
+                https://www.wikidata.org/wiki/Q124086054)</div>
+        </div>
+        <div id="humansselector"></div>
     </div>
     <div id="label"><a></a></div>
     <div id="countryselectorbutton">
@@ -139,7 +153,7 @@
             <a href="#" onClick="selectGroupAndUpdate(Oceania)">Oceania</a>
         </div> -->
     </div>
-    <div id="institutionselector"></div>
+    <div id="institutionsselector"></div>
     <div id="loadinginfo">
         <div id="loadingCountries" style="display: none;">Loading list of countries...</div>
         <div id="countriesLoaded" style="display: none;">Countries loaded.</div>
