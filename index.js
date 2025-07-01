@@ -3,6 +3,8 @@ let endpoint = "https://query.wikidata.org/sparql?query=";
 let loadinginfo = d3.select("#loadinginfo");
 let loadingCountries = d3.select("#loadingCountries");
 let countriesLoaded = d3.select("#countriesLoaded");
+let loadingInstitution = d3.select("#loadingCountries");
+let institutionLoaded = d3.select("#countriesLoaded");
 let loadingGraph = d3.select("#loadingGraph");
 let constructingGraph = d3.select("#constructingGraph");
 let updatingGraph = d3.select("#updatingGraph");
@@ -58,7 +60,12 @@ let Oceania = [ "wd:Q408", "wd:Q26988", "wd:Q712", "wd:Q697", "wd:Q664", "wd:Q69
 
 // INITIALISATION
 document.getElementById("upgradeGraphButton").disabled = true; 
-getGraphData(Europe);
+async function initGraph() {
+    let { nodes, links } = await getGraphData(Europe);
+    getInstitutionList(nodes);
+}
+
+initGraph();
 
 /** Fetches csv data wrom wikidata 
  * @param req a URI ecoded SPARQL query 
@@ -130,6 +137,38 @@ async function getCountryList() {
     countriesLoaded.style('display', 'block');
 }
 
+async function getInstitutionList(nodes) {
+    console.log("get institution list with nodes", nodes);
+    loadinginfo.style('display', 'block');
+    loadingInstitution.style('display', 'block');
+    nodes.sort((a, b) => (a["label"] > b["label"]) ? 1 : ((b["label"] > a["label"]) ? -1 : 0))
+    
+    institutionNodes = nodes.filter(node => node.instanceOf !== "human");
+    let institutionDiv = d3.select("#institutionselector");
+    institutionDiv.append("h3").text("Institutions");
+    institutionNodes.forEach(c=>{
+        let newdiv = institutionDiv.append("div")
+        let cval = c.id.replace("wd:", "http://www.wikidata.org/entity/");
+        let cid = cval.replace("http://www.wikidata.org/entity/","c")
+        newdiv
+            .append("input")
+            .attr("type","checkbox")
+            .attr("name", c["label"])
+            .attr("id",cval)
+            .attr("value", cval) 
+            //.attr("onclick","updateGraph()")
+        ;
+        newdiv
+            .append("label")
+            .append("a")
+            .attr("href",cval)
+            .attr("target","_blank")
+            .text(c["label"])
+        ;
+    });
+    loadingInstitution.style('display', 'none');
+    institutionLoaded.style('display', 'block');
+}
 function pushItemsToObject(nodes, links, items) {
     items.forEach((line) => {
         if (line.item && line.linkTo) {
@@ -187,34 +226,34 @@ let perpetrators = []
 /** Fetches the graph data from wikidata 
  * @param countries An array of countries
 */
-async function getGraphData(countries) {   
+async function getGraphData(countries) {
     let nodes = [];
     let links = [];
 
     loadinginfo.style('display', 'block');
     loadingGraph.style('display', 'block');
-    let sparql1 = await (await fetch('sparql/Base.rq')).text(); 
-    let req = encodeURIComponent(sparql1.replace("JSVAR:COUNTRIES",countries.join(" ")).replace("/#.*/gm",''));
+    let sparql1 = await (await fetch('sparql/Base.rq')).text();
+    let req = encodeURIComponent(sparql1.replace("JSVAR:COUNTRIES", countries.join(" ")).replace("/#.*/gm", ''));
     let data = await fetchWikiDataPOST(req);
     console.log("organisations", data.results.bindings);
     ({ nodes, links } = pushItemsToObject(nodes, links, data.results.bindings));
 
-    let organisationsWDid = data.results.bindings.map(d => d.item.value.replace("http://www.wikidata.org/entity/","wd:"));
+    let organisationsWDid = data.results.bindings.map(d => d.item.value.replace("http://www.wikidata.org/entity/", "wd:"));
     let sparql2 = await (await fetch('sparql/CEO.rq')).text();
-    let reqExtra = encodeURIComponent(sparql2.replace("JSVAR:ORGID",organisationsWDid.join(" ")).replace("/#.*/gm",''));
+    let reqExtra = encodeURIComponent(sparql2.replace("JSVAR:ORGID", organisationsWDid.join(" ")).replace("/#.*/gm", ''));
     let CEOData = await fetchWikiDataPOST(reqExtra);
     console.log("CEO data", CEOData.results.bindings);
     ({ nodes, links } = pushItemsToObject(nodes, links, CEOData.results.bindings));
     
     loadingGraph.text("Fetching extra graph links from WikiData...");
     
-    // france / isral / cac40
+    // france / israel / cac40
     const toRemove = ["wd:Q1450662", "wd:Q801", "Q648828"]
 
-    let sparql3 = await (await fetch('sparql/Iteration.rq')).text(); 
-    // we remove big organization : french republic / Israel
+    let sparql3 = await (await fetch('sparql/Iteration.rq')).text();
+    // we remove big organization
     organisationsWDid = organisationsWDid.filter(id => !toRemove.includes(id));
-    let req3 = encodeURIComponent(sparql3.replace("SVAR:SUBPERPETRATOR",organisationsWDid.join(" ")).replace("/#.*/gm",''));
+    let req3 = encodeURIComponent(sparql3.replace("SVAR:SUBPERPETRATOR", organisationsWDid.join(" ")).replace("/#.*/gm", ''));
     let data3 = await fetchWikiDataPOST(req3);
     console.log("organisationsrecursive", data3.results.bindings);
     ({ nodes, links } = pushItemsToObject(nodes, links, data3.results.bindings));
@@ -242,28 +281,28 @@ async function getGraphData(countries) {
 
 
 
-        // to do : ceo of first iteration ? 
+    // to do : ceo of first iteration ? 
 
     const candidateRootsIDs = nodes
-    .filter(node => node.typeOfLink === "isPerpetrator")
+        .filter(node => node.typeOfLink === "isPerpetrator")
         .map(node => node.id);
     
-    links.forEach(function(link){
+    links.forEach(function (link) {
         if (!link.target["linkCount"]) link.target["linkCount"] = 0;
-        link.target["linkCount"]++;    
+        link.target["linkCount"]++;
     });
 
     // colour
     console.log("nodes get graph data", nodes, "links", links);
     const candidateRootsIDSet = new Set(candidateRootsIDs);
     const candidateRoots = nodes
-    .filter(node => candidateRootsIDSet.has(node.id))
-    .map(node => node.id);
+        .filter(node => candidateRootsIDSet.has(node.id))
+        .map(node => node.id);
     console.log("candidate roots", candidateRoots);
     distances = computeDistancesFromRoot(candidateRoots, nodes, links)
     let maxDistance = Math.max(...Object.values(distances));
     nodes.forEach((node) => {
-        node.colour = distances[node.id];    
+        node.colour = distances[node.id];
     });
     console.log("distances", distances, "maxDistance", maxDistance);
 
@@ -273,6 +312,7 @@ async function getGraphData(countries) {
     // store the full graph for later use
     graphstore = Object.assign({}, graph);
     drawGraph(graph);
+    return { nodes, links };
 }
 
 
@@ -382,10 +422,15 @@ function drawGraph(graph) {
 
     // TRANSFORM THE DATA INTO A D3 GRAPH
     simulation
-        .nodes(graph.nodes)
-        .on('tick', ticked) // this d3 ticker can be replaced by PIXI's "requestAnimationFrame" but the system is then too excited
-        .force('link')
-          .links(graph.links);
+  .nodes(graph.nodes)
+  .on('tick', ticked);
+
+    simulation
+    .force("link", d3.forceLink(graph.links).id(d => d.id).distance(50))
+    .force("charge", d3.forceManyBody().strength(-200)) // More negative = more repulsion
+    .force("center", d3.forceCenter(app.renderer.width / 2, app.renderer.height / 2)); // optional: center force
+
+
 
     // count incoming links to set node sizes, and remove nodes with no radius, stemming from super-ideologies
     graph.links.forEach(function(link){
@@ -653,7 +698,7 @@ function updateGraph(){
         console.log(checked);
         app.stage.removeChildren();
         // wait before launching
-        getGraphData(checked);
+        ({ nodes, links } = getGraphData(checked));
 }
 
 // TODO add element without destroying everything

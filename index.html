@@ -55,6 +55,16 @@
             height: 30px
         }
 
+        #institutionselector {
+            position: absolute;
+            font-size: 11px;
+            top: 50px;
+            left: 10px;
+            height: calc(100% - 30px);
+            overflow-y: scroll;
+            width: 15%;
+        }
+
         #loadinginfo {
             position: absolute;
             top: 40%;
@@ -129,7 +139,7 @@
             <a href="#" onClick="selectGroupAndUpdate(Oceania)">Oceania</a>
         </div> -->
     </div>
-    <!-- <div id="countryselector"></div> -->
+    <div id="institutionselector"></div>
     <div id="loadinginfo">
         <div id="loadingCountries" style="display: none;">Loading list of countries...</div>
         <div id="countriesLoaded" style="display: none;">Countries loaded.</div>
