@@ -57,8 +57,8 @@ let Oceania = [ "wd:Q408", "wd:Q26988", "wd:Q712", "wd:Q697", "wd:Q664", "wd:Q69
 // INITIALISATION
 document.getElementById("upgradeGraphButton").disabled = true; 
 async function initGraph() {
-    let { nodes, links } = await getGraphData(Europe);
-    getInstitutionList(nodes);
+    let graph = await getGraphData(Europe);
+    getInstitutionList(graph.nodes);
 }
 
 initGraph();
@@ -141,10 +141,25 @@ async function buildItemList(nodes, listName) {
         let cid = cval.replace("http://www.wikidata.org/entity/","c")
         newdiv
             .append("input")
-            .attr("type","checkbox")
+            .attr("type", "checkbox")
             .attr("name", c["label"])
-            .attr("id",cval)
-            .attr("value", cval) 
+            .attr("id", cval)
+            .attr("value", cval)
+            .on("change", function () {
+                const isChecked = this.checked;
+                const value = this.value;
+                const liveNode = graph.nodes.find(n =>
+                    value.endsWith(n.id.replace("wd:", ""))
+                );
+                if (liveNode) {
+                    console.log("Live node position:", liveNode.x, liveNode.y);
+                    focus(liveNode, {});
+                } else {
+                    console.warn("Node not found in graph.nodes for", value);
+                }
+});
+
+
             //.attr("onclick","updateGraph()")
         ;
         newdiv
@@ -312,8 +327,8 @@ async function getGraphData(countries) {
     console.log("nodes", graph.nodes, "links", graph.links)
     // store the full graph for later use
     graphstore = Object.assign({}, graph);
-    drawGraph(graph);
-    return { nodes, links };
+    graph = drawGraph(graph);
+    return graph;
 }
 
 
@@ -624,15 +639,26 @@ let rootSelectedNode = {};
 
 // https://observablehq.com/@d3/drag-zoom
 
-function showHoverLabel(node,ev) {
-    let nodex = (ev.data.global.x + 15) ;
-    let nodey = (ev.data.global.y - 15)  ;
+function showHoverLabel(node, ev) {
+    let nodex, nodey;
+    if (ev && ev.data && ev.data.global) {
+        // PIXI pointer event
+        nodex = ev.data.global.x + 15;
+        nodey = ev.data.global.y - 15;
+    } else  if (node.gfx) {
+        // get the global position of the node gfx container/sprite
+        const globalPos = node.gfx.toGlobal(new PIXI.Point(0, 0));
+        nodex = globalPos.x + 15;
+        nodey = globalPos.y - 15;
+    } else {
+      console.error("Node position is not defined", node);
+    }
     d3.select("#label")
-        .attr("style", "left:"+nodex+"px;top:"+nodey+"px;")
+        .attr("style", `left:${nodex}px;top:${nodey}px;`)
         .select("a")
-        .attr("href",node.id.replace("wd:","http://www.wikidata.org/entity/"))
-        .attr("target","_blank")
-        .text(node.label)  
+        .attr("href", node.id.replace("wd:", "http://www.wikidata.org/entity/"))
+        .attr("target", "_blank")
+        .text(node.label);
 }
 
 function focus(d,ev) {
@@ -699,7 +725,7 @@ function updateGraph(){
         console.log(checked);
         app.stage.removeChildren();
         // wait before launching
-        ({ nodes, links } = getGraphData(checked));
+        getGraphData(checked);
 }
 
 // TODO add element without destroying everything
