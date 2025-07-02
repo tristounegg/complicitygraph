@@ -309,18 +309,17 @@ async function getGraphData(countries) {
     });
 
     // colour
-    console.log("nodes get graph data", nodes, "links", links);
+    //  console.log("nodes get graph data", nodes, "links", links);
     const candidateRootsIDSet = new Set(candidateRootsIDs);
     const candidateRoots = nodes
         .filter(node => candidateRootsIDSet.has(node.id))
         .map(node => node.id);
-    console.log("candidate roots", candidateRoots);
     distances = computeDistancesFromRoot(candidateRoots, nodes, links)
     let maxDistance = Math.max(...Object.values(distances));
     nodes.forEach((node) => {
         node.colour = distances[node.id];
     });
-    console.log("distances", distances, "maxDistance", maxDistance);
+    // console.log("distances", distances, "maxDistance", maxDistance);
 
 
     graph = { links: links, nodes: nodes };
@@ -571,6 +570,7 @@ function drawGraph(graph) {
     }
 
     simulation.alphaTarget(0.05).restart(); // give it an initial push
+    return graph;
 }
 
 // DRAG, PAN AND ZOOM
