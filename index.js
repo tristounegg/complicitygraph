@@ -137,7 +137,6 @@ async function getCountryList() {
     let sparql = await (await fetch('sparql/CountryList.rq')).text();
     let req = endpoint + encodeURIComponent(sparql.replace("/#.*/gm",''));
     let countries = await fetchWikiData(req);
-    // console.log(countries);
     countries.sort((a,b) => (a["countryLabel"] > b["countryLabel"]) ? 1 : ((b["countryLabel"] > a["countryLabel"]) ? -1 : 0))
     let countriesdiv = d3.select("#countryselector");
     countries.forEach(c=>{
@@ -166,7 +165,6 @@ async function getCountryList() {
 
 async function buildItemList(nodes, listName) {
     let div = d3.select(`#${listName}selector`);
-    console.log("build item list with ", `#${listName}selector`, "and div", div, "and nodes", nodes);
     div.append("h3").text(listName);
     nodes.forEach(c=>{
         let newdiv = div.append("div")
@@ -201,7 +199,6 @@ async function buildItemList(nodes, listName) {
 }
 
 async function getInstitutionList(nodes) {
-    console.log("get institution list with nodes", nodes);
     loadinginfo.style('display', 'block');
     nodes.sort((a, b) => (a["label"] > b["label"]) ? 1 : ((b["label"] > a["label"]) ? -1 : 0))
     
@@ -282,10 +279,8 @@ async function getGraphData() {
     loadingGraph.style('display', 'block');
     rootNodes = await getRootNodes();
     let sparql1 = await (await fetch('sparql/Iteration.rq')).text();
-    console.log("rootnode", rootNodes)
     let req = encodeURIComponent(sparql1.replace("SVAR:SUBPERPETRATOR", rootNodes.join(" ")).replace("/#.*/gm", ''));
     let data = await fetchWikiDataPOST(req);
-    console.log("organisations", data.results.bindings);
     ({ nodes, links } = pushItemsToObject(nodes, links, data.results.bindings));
     // CEO request
     let organisationsWDid = data.results.bindings.map(d => d.item.value.replace("http://www.wikidata.org/entity/", "wd:"));
@@ -312,7 +307,6 @@ async function getGraphData() {
     links = links.filter(id => !toRemove.includes(id));
     let organisationsWDidRecursive = data3.results.bindings.map(d => d.item.value.replace("http://www.wikidata.org/entity/", "wd:"));
     organisationsWDidRecursive =  organisationsWDidRecursive.filter(id => !toRemove.includes(id));
-    console.log("nodes", nodes);
     // CEO request iteration
     function chunkArray(array, size) {
         const chunks = [];
@@ -357,7 +351,6 @@ async function getGraphData() {
 
 
     graph = { links: links, nodes: nodes };
-    console.log("GET GRAPH DATA nodes", graph.nodes, "links", graph.links)
     // store the full graph for later use
     graphstore = Object.assign({}, graph);
     return { links, nodes, candidateRootsIDs };
@@ -512,7 +505,7 @@ function computeAllConnectedCounts(graph, candidateRootsIDs) {
             nodeMap[id].linkCount ??= Math.max(...graph.nodes.map(n => n.linkCount || 0)) + 1;
         }
     });
-
+    
     return graph;
 }
 
@@ -523,7 +516,6 @@ function computeAllConnectedCounts(graph, candidateRootsIDs) {
 */
 function drawGraph(graph, candidateRootsIDs) {
     constructingGraph.style('display', 'block');
-    console.log("draw graqph grph", graph);
 
     // TRANSFORM THE DATA INTO A D3 GRAPH
     simulation
@@ -671,7 +663,6 @@ function drawGraph(graph, candidateRootsIDs) {
 
 var transform = {k:1,x:0,y:0}; 
 function zoomAndPan() {
-    // console.log(d3.event.transform);
     transform = d3.event.transform;
     app.stage.scale.x = app.stage.scale.y = d3.event.transform.k;
     if(!draggingNode ) {
@@ -718,7 +709,6 @@ function unSelectAllCountries(){
 }
 
 function selectGroupAndUpdate(group){
-    console.log(group);
     unSelectAllCountries();
     let allBoxes = d3.selectAll("input[type='checkbox']");
     allBoxes._groups[0].forEach(b=>{
@@ -756,7 +746,6 @@ function showHoverLabel(node, ev) {
 }
 
 function focus(d,ev) {
-    console.log(d);
     showHoverLabel(d,ev); // nececessary for touch screen
     if (rootSelectedNode == d) {
         unfocus();
@@ -826,12 +815,6 @@ async function updateGraph() {
     graph = graphstore = null;
     loadinginfo.style('display', 'block');
     updatingGraph.style('display', 'block');
-    // let checked = [];
-    // let boxes = d3.selectAll("input[type='checkbox']:checked")
-    // boxes._groups[0].forEach(b=>{
-    //     checked.push(b.value)
-    // });
-    // console.log(checked);
     app.stage.removeChildren();
     // wait before launching
     ({ graph, candidateRootsIDs } = await getOrCreateCachedGraph(useCache = false));
