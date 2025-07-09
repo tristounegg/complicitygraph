@@ -292,8 +292,8 @@ async function getGraphData() {
     // first iteration
     loadingGraph.text("Fetching extra graph links from WikiData...this can take a long time");
     // we remove big organization
-    // france / israel / cac40 / service premier ministre / American stock market index / S&P 500
-    const toRemove = ["wd:Q1450662", "wd:Q801", "wd:Q648828", "wd:Q54293525", "wd:Q242345", "wd:Q242345"]
+    // france / israel / cac40 / service premier ministre / American stock market index / S&P 500 / Big Tech (web) / Dow Jones Global Titans 50
+    const toRemove = ["wd:Q1450662", "wd:Q801", "wd:Q648828", "wd:Q54293525", "wd:Q242345", "wd:Q242345", "wd:Q30748112", "wd:Q773026"]
     organisationsWDid = organisationsWDid.filter(id => !toRemove.includes(id));
     nodes = nodes.filter(id => !toRemove.includes(id));
     links = links.filter(id => !toRemove.includes(id));
@@ -454,6 +454,62 @@ let app = new PIXI.Application({
 }); // Convenience class that automatically creates the renderer, ticker and root container.
 document.body.appendChild(app.view);
 
+// function computeAllConnectedCounts(graph, candidateRootsIDs) {
+//     // Build adjacency list
+//     const adjacency = {};
+//     graph.nodes.forEach(n => adjacency[n.id] = []);
+//     graph.links.forEach(link => {
+//         const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+//         const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+//         adjacency[sourceId].push(targetId);
+//         adjacency[targetId].push(sourceId);
+//     });
+
+//     // Initialize all nodes with null distance
+//     const nodeMap = {};
+//     graph.nodes.forEach(n => {
+//         nodeMap[n.id] = n;
+//         n.linkCount = null;
+//     });
+
+//     // Queue for BFS
+//     const queue = [];
+
+//     // Start from leaf nodes (degree 1) and not in candidateRootsIDs
+//     graph.nodes.forEach(n => {
+//         if (adjacency[n.id].length === 1) {
+//             n.linkCount = 0;
+//             queue.push(n.id);
+//         }
+//     });
+
+//     while (queue.length > 0) {
+//         const currentId = queue.shift();
+//         const currentLevel = nodeMap[currentId].linkCount;
+
+//         adjacency[currentId].forEach(neighborId => {
+//             const neighbor = nodeMap[neighborId];
+//             if (neighbor.linkCount == null) {
+//                 neighbor.linkCount = currentLevel + 1;
+//                 queue.push(neighborId);
+//             } else if (neighbor.linkCount < currentLevel + 1) {
+//                 // Optional: update if this path is longer
+//                 neighbor.linkCount = currentLevel + 1;
+//             }
+//         });
+//     }
+
+//     // Center nodes get the highest count (or remain as is if already set)
+//     candidateRootsIDs.forEach(id => {
+//         if (nodeMap[id]) {
+//             nodeMap[id].linkCount ??= Math.max(...graph.nodes.map(n => n.linkCount || 0)) + 1;
+//         }
+//     });
+//     console.log("computeAllConnectedCounts graph is ", graph, "adjacency", adjacency, "queue", queue, "nodeMap", nodeMap);
+//     return graph;
+// }
+
+
 function computeAllConnectedCounts(graph, candidateRootsIDs) {
     // Build adjacency list
     const adjacency = {};
@@ -465,51 +521,99 @@ function computeAllConnectedCounts(graph, candidateRootsIDs) {
         adjacency[targetId].push(sourceId);
     });
 
-    // Initialize all nodes with null distance
+    // Clear linkCount
     const nodeMap = {};
     graph.nodes.forEach(n => {
         nodeMap[n.id] = n;
         n.linkCount = null;
+        n.componentId = null;
     });
 
-    // Queue for BFS
-    const queue = [];
+    let componentCounter = 0;
+    const components = [];
 
-    // Start from leaf nodes (degree 1) and not in candidateRootsIDs
-    graph.nodes.forEach(n => {
-        if (adjacency[n.id].length === 1 && !candidateRootsIDs.includes(n.id)) {
-            n.linkCount = 0;
-            queue.push(n.id);
+    // Identify components using BFS
+    for (const node of graph.nodes) {
+        if (node.componentId != null) continue; // already assigned
+
+        const component = [];
+        const queue = [node.id];
+        node.componentId = componentCounter;
+
+        while (queue.length > 0) {
+            const currentId = queue.shift();
+            const currentNode = nodeMap[currentId];
+            component.push(currentNode);
+
+            adjacency[currentId].forEach(neighborId => {
+                const neighbor = nodeMap[neighborId];
+                if (neighbor.componentId == null) {
+                    neighbor.componentId = componentCounter;
+                    queue.push(neighborId);
+                }
+            });
         }
-    });
 
-    while (queue.length > 0) {
-        const currentId = queue.shift();
-        const currentLevel = nodeMap[currentId].linkCount;
+        components.push(component);
+        componentCounter++;
+    }
 
-        adjacency[currentId].forEach(neighborId => {
-            const neighbor = nodeMap[neighborId];
-            if (neighbor.linkCount == null) {
-                neighbor.linkCount = currentLevel + 1;
-                queue.push(neighborId);
-            } else if (neighbor.linkCount < currentLevel + 1) {
-                // Optional: update if this path is longer
-                neighbor.linkCount = currentLevel + 1;
+    // Compute linkCounts per component
+    for (const component of components) {
+        const queue = [];
+
+        // Start from leaf nodes
+        component.forEach(n => {
+            if (adjacency[n.id].length === 1 && !candidateRootsIDs.includes(n.id)) {
+                n.linkCount = 0;
+                queue.push(n.id);
+            }
+        });
+
+        while (queue.length > 0) {
+            const currentId = queue.shift();
+            const currentLevel = nodeMap[currentId].linkCount;
+
+            adjacency[currentId].forEach(neighborId => {
+                const neighbor = nodeMap[neighborId];
+                if (neighbor.componentId !== component[0].componentId) return;
+
+                if (neighbor.linkCount == null) {
+                    neighbor.linkCount = currentLevel + 1;
+                    queue.push(neighborId);
+                } else if (neighbor.linkCount < currentLevel + 1) {
+                    neighbor.linkCount = currentLevel + 1;
+                }
+            });
+        }
+
+        // Set root nodes in this component to local max + 1
+        let localMax = Math.max(...component.map(n => n.linkCount ?? 0));
+        component.forEach(n => {
+            if (candidateRootsIDs.includes(n.id)) {
+                n.linkCount = localMax + 1;
             }
         });
     }
 
-    // Center nodes get the highest count (or remain as is if already set)
-    candidateRootsIDs.forEach(id => {
-        if (nodeMap[id]) {
-            nodeMap[id].linkCount ??= Math.max(...graph.nodes.map(n => n.linkCount || 0)) + 1;
-        }
-    });
-    
+    // Get global max after root updates
+    const globalMax = Math.max(...graph.nodes.map(n => n.linkCount ?? 0));
+
+    // Normalize each component
+    for (const component of components) {
+        const localRootMax = Math.max(...component.map(n =>
+            candidateRootsIDs.includes(n.id) ? n.linkCount : 0
+        ));
+
+        const scale = globalMax / localRootMax;
+
+        component.forEach(n => {
+            n.linkCount = Math.round(n.linkCount * scale); // or keep as float
+        });
+    }
+
     return graph;
 }
-
-
 
 /** Draws the graph using D3js and PIXIjs 
  * @param graph A JSON encoded set of nodes and links
@@ -536,7 +640,7 @@ function drawGraph(graph, candidateRootsIDs) {
     graph = computeAllConnectedCounts(graph, candidateRootsIDs);
     graph.nodes.forEach((node) => {
         if (!node.linkCount) node.linkCount = 0;
-        node.radius = 3 + Math.sqrt(node.linkCount);
+        node.radius = node.linkCount;
     });
     simulation.force("charge", d3.forceManyBody()
         .strength(d => -50 - (d.linkCount || 0) * 10)  // more repulsion if more links
@@ -753,7 +857,8 @@ function focus(d,ev) {
         rootSelectedNode = d;
         markSelected(d, 2);
     }
-    updateColor();  
+    updateColor(); 
+    console.log("focus on", d);
 }
 
 function unfocus() {
