@@ -9,7 +9,7 @@ let loadinginfotext = "";
 let graph, graphstore, canvas ; 
 
 // Make a list of countries
-getCountryList();
+//getCountryList();
 let Europe = ["wd:Q1246", // Kosovo
     "wd:Q142", "wd:Q145", // UK
     "wd:Q183", "wd:Q189", // Iceland
@@ -52,12 +52,45 @@ let CanadaAndUS = ["wd:Q16","wd:Q30"];
 let LatinAmerica = ["wd:Q414","wd:Q21203","wd:Q242","wd:Q23635","wd:Q155","wd:Q5785","wd:Q298","wd:Q739","wd:Q800","wd:Q241","wd:Q784","wd:Q786","wd:Q736","wd:Q792","wd:Q769","wd:Q774","wd:Q734","wd:Q790","wd:Q783","wd:Q766","wd:Q96","wd:Q811","wd:Q804","wd:Q733","wd:Q419","wd:Q730","wd:Q754","wd:Q18221","wd:Q77","wd:Q717"];
 let RussiaAndBelarus = ["wd:Q184","wd:Q159"];
 let NorthAfrica =["wd:Q262","wd:Q79","wd:Q1016","wd:Q1028","wd:Q948"];
-let Oceania = [ "wd:Q408", "wd:Q26988", "wd:Q712", "wd:Q697", "wd:Q664", "wd:Q691", "wd:Q683", "wd:Q678", "wd:Q686"];
+let Oceania = ["wd:Q408", "wd:Q26988", "wd:Q712", "wd:Q697", "wd:Q664", "wd:Q691", "wd:Q683", "wd:Q678", "wd:Q686"];
+
+const getRootNodes = async () => {
+  const response = await fetch('./sparql/RootAccomplices');
+  const text = await response.text();
+  const rootNodes = text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line && !line.startsWith('//'))
+    .map(line => line.split('\t')[0]);
+
+  return rootNodes;
+};;
+
+async function getOrCreateCachedGraph(useCache=true) {
+    const cacheKey = `graph`;
+    const cached = localStorage.getItem(cacheKey);
+
+    if (cached && useCache) {
+        console.log("Loaded graph from cache");
+        const { graph, candidateRootsIDs } = JSON.parse(cached);
+        return { graph, candidateRootsIDs };
+    }
+
+    ({ links, nodes, candidateRootsIDs } = await getGraphData());
+    graph = { links: links, nodes: nodes }
+    localStorage.setItem(cacheKey, JSON.stringify({
+        graph: graph,
+        candidateRootsIDs: candidateRootsIDs,
+    }));
+    console.log("Graph saved to cache");
+    return { graph, candidateRootsIDs };
+}
 
 // INITIALISATION
 document.getElementById("upgradeGraphButton").disabled = true; 
 async function initGraph() {
-    let graph = await getGraphData(Europe);
+    ({ graph, candidateRootsIDs } = await getOrCreateCachedGraph());
+    graph = drawGraph(graph, candidateRootsIDs);
     getInstitutionList(graph.nodes);
 }
 
@@ -152,16 +185,11 @@ async function buildItemList(nodes, listName) {
                     value.endsWith(n.id.replace("wd:", ""))
                 );
                 if (liveNode) {
-                    console.log("Live node position:", liveNode.x, liveNode.y);
                     focus(liveNode, {});
                 } else {
                     console.warn("Node not found in graph.nodes for", value);
                 }
 });
-
-
-            //.attr("onclick","updateGraph()")
-        ;
         newdiv
             .append("label")
             .append("a")
@@ -170,7 +198,6 @@ async function buildItemList(nodes, listName) {
             .text(c["label"])
         ;
     });
-    console.log("div is now ", div);
 }
 
 async function getInstitutionList(nodes) {
@@ -237,72 +264,76 @@ function pushItemsToObject(nodes, links, items) {
     nodes = Array.from(nodeMap.values());
     return { nodes, links };
 }
-    
+
+async function getCeo(items) {
+    let sparql2 = await (await fetch('sparql/CEO.rq')).text();
+    let reqExtra = encodeURIComponent(sparql2.replace("JSVAR:ORGID", items.join(" ")).replace("/#.*/gm", ''));
+    let CEOData = await fetchWikiDataPOST(reqExtra);
+    return CEOData;
+}
+
 let perpetrators = []
-/** Fetches the graph data from wikidata 
- * @param countries An array of countries
-*/
-async function getGraphData(countries) {
+async function getGraphData() {
     let nodes = [];
     let links = [];
 
+    // initial request
     loadinginfo.style('display', 'block');
     loadingGraph.style('display', 'block');
-    let sparql1 = await (await fetch('sparql/Base.rq')).text();
-    let req = encodeURIComponent(sparql1.replace("JSVAR:COUNTRIES", countries.join(" ")).replace("/#.*/gm", ''));
+    rootNodes = await getRootNodes();
+    let sparql1 = await (await fetch('sparql/Iteration.rq')).text();
+    console.log("rootnode", rootNodes)
+    let req = encodeURIComponent(sparql1.replace("SVAR:SUBPERPETRATOR", rootNodes.join(" ")).replace("/#.*/gm", ''));
     let data = await fetchWikiDataPOST(req);
     console.log("organisations", data.results.bindings);
     ({ nodes, links } = pushItemsToObject(nodes, links, data.results.bindings));
-
+    // CEO request
     let organisationsWDid = data.results.bindings.map(d => d.item.value.replace("http://www.wikidata.org/entity/", "wd:"));
-    let sparql2 = await (await fetch('sparql/CEO.rq')).text();
-    let reqExtra = encodeURIComponent(sparql2.replace("JSVAR:ORGID", organisationsWDid.join(" ")).replace("/#.*/gm", ''));
-    let CEOData = await fetchWikiDataPOST(reqExtra);
-    console.log("CEO data", CEOData.results.bindings);
+    CEOData = await getCeo(organisationsWDid);
     ({ nodes, links } = pushItemsToObject(nodes, links, CEOData.results.bindings));
-    
-    loadingGraph.text("Fetching extra graph links from WikiData...");
-    
-    // france / israel / cac40
-    const toRemove = ["wd:Q1450662", "wd:Q801", "Q648828"]
+    let ceoWDid = CEOData.results.bindings.map(d => d.item.value.replace("http://www.wikidata.org/entity/", "wd:"));
+    organisationsWDid.push(...ceoWDid)
+
+    // first iteration
+    loadingGraph.text("Fetching extra graph links from WikiData...this can take a long time");
+    // we remove big organization
+    // france / israel / cac40 / service premier ministre / American stock market index / S&P 500
+    const toRemove = ["wd:Q1450662", "wd:Q801", "wd:Q648828", "wd:Q54293525", "wd:Q242345", "wd:Q242345"]
+    organisationsWDid = organisationsWDid.filter(id => !toRemove.includes(id));
+    nodes = nodes.filter(id => !toRemove.includes(id));
+    links = links.filter(id => !toRemove.includes(id));
+
 
     let sparql3 = await (await fetch('sparql/Iteration.rq')).text();
-    // we remove big organization
-    organisationsWDid = organisationsWDid.filter(id => !toRemove.includes(id));
     let req3 = encodeURIComponent(sparql3.replace("SVAR:SUBPERPETRATOR", organisationsWDid.join(" ")).replace("/#.*/gm", ''));
     let data3 = await fetchWikiDataPOST(req3);
-    console.log("organisationsrecursive", data3.results.bindings);
     ({ nodes, links } = pushItemsToObject(nodes, links, data3.results.bindings));
+    nodes = nodes.filter(id => !toRemove.includes(id));
+    links = links.filter(id => !toRemove.includes(id));
+    let organisationsWDidRecursive = data3.results.bindings.map(d => d.item.value.replace("http://www.wikidata.org/entity/", "wd:"));
+    organisationsWDidRecursive =  organisationsWDidRecursive.filter(id => !toRemove.includes(id));
     console.log("nodes", nodes);
+    // CEO request iteration
+    function chunkArray(array, size) {
+        const chunks = [];
+        for (let i = 0; i < array.length; i += size) {
+            chunks.push(array.slice(i, i + size));
+        }
+        return chunks;
+        }
 
-
-    //  second recursion, not working, not clean
-    // organisationsWDid = nodes.map(d => d.id);
-    // organisationsWDid = organisationsWDid.filter(id => !toRemove.includes(id));
-    // const half = Math.ceil(organisationsWDid.length / 2);
-    // const firstHalf = organisationsWDid.slice(0, half);
-    // const secondHalf = organisationsWDid.slice(half);
-
-    // let sparql4 = await (await fetch('sparql/Iteration.rq')).text(); 
-    // let req4 = endpoint + encodeURIComponent(sparql4.replace("SVAR:SUBPERPETRATOR",firstHalf.join(" ")).replace("/#.*/gm",''));
-    // let data4_1 = await fetchWikiData(req4);
-    // ({ nodes, links } = pushItemsToObject(nodes, links, data4_1));
-    // console.log("organisationsrecursive2 - first half", data4_1);
-
-    // let req4_2 = endpoint + encodeURIComponent(sparql4.replace("SVAR:SUBPERPETRATOR",secondHalf.join(" ")).replace("/#.*/gm",''));
-    // let data4_2 = await fetchWikiData(req4_2);
-    // ({ nodes, links } = pushItemsToObject(nodes, links, data4_2));
-    // console.log("organisationsrecursive2 - first half", data4_2);
-
-
-
-
-    // to do : ceo of first iteration ? 
-
-    const candidateRootsIDs = nodes
-        .filter(node => node.typeOfLink === "isPerpetrator")
-        .map(node => node.id);
-    
+    const chunkSize = 500;
+    const orgChunks = chunkArray(organisationsWDidRecursive, chunkSize);
+    let CEODataAll = [];
+    for (const chunk of orgChunks) {
+    try {
+        const CEOData = await getCeo(chunk);
+        ({ nodes, links } = pushItemsToObject(nodes, links, CEOData.results.bindings));
+        CEODataAll.push(...CEOData.results.bindings);
+    } catch (err) {
+        console.error("Failed to fetch CEO data for a chunk", err);
+    }
+    }
     links.forEach(function (link) {
         if (!link.target["linkCount"]) link.target["linkCount"] = 0;
         link.target["linkCount"]++;
@@ -310,24 +341,26 @@ async function getGraphData(countries) {
 
     // colour
     //  console.log("nodes get graph data", nodes, "links", links);
+    // const candidateRootsIDs = nodes
+    //     .filter(node => node.typeOfLink === "isPerpetrator")
+    //     .map(node => node.id);
+    const candidateRootsIDs  = await getRootNodes();
     const candidateRootsIDSet = new Set(candidateRootsIDs);
     const candidateRoots = nodes
         .filter(node => candidateRootsIDSet.has(node.id))
         .map(node => node.id);
     distances = computeDistancesFromRoot(candidateRoots, nodes, links)
-    let maxDistance = Math.max(...Object.values(distances));
     nodes.forEach((node) => {
-        node.colour = distances[node.id];
+        node.distance = distances[node.id];
     });
     // console.log("distances", distances, "maxDistance", maxDistance);
 
 
     graph = { links: links, nodes: nodes };
-    console.log("nodes", graph.nodes, "links", graph.links)
+    console.log("GET GRAPH DATA nodes", graph.nodes, "links", graph.links)
     // store the full graph for later use
     graphstore = Object.assign({}, graph);
-    graph = drawGraph(graph);
-    return graph;
+    return { links, nodes, candidateRootsIDs };
 }
 
 
@@ -428,17 +461,73 @@ let app = new PIXI.Application({
 }); // Convenience class that automatically creates the renderer, ticker and root container.
 document.body.appendChild(app.view);
 
+function computeAllConnectedCounts(graph, candidateRootsIDs) {
+    // Build adjacency list
+    const adjacency = {};
+    graph.nodes.forEach(n => adjacency[n.id] = []);
+    graph.links.forEach(link => {
+        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+        adjacency[sourceId].push(targetId);
+        adjacency[targetId].push(sourceId);
+    });
+
+    // Initialize all nodes with null distance
+    const nodeMap = {};
+    graph.nodes.forEach(n => {
+        nodeMap[n.id] = n;
+        n.linkCount = null;
+    });
+
+    // Queue for BFS
+    const queue = [];
+
+    // Start from leaf nodes (degree 1) and not in candidateRootsIDs
+    graph.nodes.forEach(n => {
+        if (adjacency[n.id].length === 1 && !candidateRootsIDs.includes(n.id)) {
+            n.linkCount = 0;
+            queue.push(n.id);
+        }
+    });
+
+    while (queue.length > 0) {
+        const currentId = queue.shift();
+        const currentLevel = nodeMap[currentId].linkCount;
+
+        adjacency[currentId].forEach(neighborId => {
+            const neighbor = nodeMap[neighborId];
+            if (neighbor.linkCount == null) {
+                neighbor.linkCount = currentLevel + 1;
+                queue.push(neighborId);
+            } else if (neighbor.linkCount < currentLevel + 1) {
+                // Optional: update if this path is longer
+                neighbor.linkCount = currentLevel + 1;
+            }
+        });
+    }
+
+    // Center nodes get the highest count (or remain as is if already set)
+    candidateRootsIDs.forEach(id => {
+        if (nodeMap[id]) {
+            nodeMap[id].linkCount ??= Math.max(...graph.nodes.map(n => n.linkCount || 0)) + 1;
+        }
+    });
+
+    return graph;
+}
+
+
+
 /** Draws the graph using D3js and PIXIjs 
  * @param graph A JSON encoded set of nodes and links
 */
-function drawGraph(graph) {
+function drawGraph(graph, candidateRootsIDs) {
     constructingGraph.style('display', 'block');
-    console.log(graph);
+    console.log("draw graqph grph", graph);
 
     // TRANSFORM THE DATA INTO A D3 GRAPH
     simulation
   .nodes(graph.nodes)
-  .on('tick', ticked);
 
     simulation
     .force("link", d3.forceLink(graph.links).id(d => d.id).distance(50))
@@ -448,19 +537,23 @@ function drawGraph(graph) {
 
 
     // count incoming links to set node sizes, and remove nodes with no radius, stemming from super-ideologies
-    graph.links.forEach(function(link){
-        if (!link.target["linkCount"]) link.target["linkCount"] = 0;
-        link.target["linkCount"]++;    
-    });
+    // graph.links.forEach(function(link){
+    //     if (!link.target["linkCount"]) link.target["linkCount"] = 0;
+    //     link.target["linkCount"]++;    
+    // });
+    graph = computeAllConnectedCounts(graph, candidateRootsIDs);
     graph.nodes.forEach((node) => {
         if (!node.linkCount) node.linkCount = 0;
         node.radius = 3 + Math.sqrt(node.linkCount);
     });
+    simulation.force("charge", d3.forceManyBody()
+        .strength(d => -50 - (d.linkCount || 0) * 10)  // more repulsion if more links
+    )
     graph.links = graph.links.filter(l => ! isNaN(l.source.radius));
     // remove freely floating nodes
-    graph.nodes = graph.nodes.filter(n =>  graph.links.filter(l => 
-        l.source == n | l.target == n
-    ).length > 0 );
+    // graph.nodes = graph.nodes.filter(n =>  graph.links.filter(l => 
+    //     l.source == n | l.target == n
+    // ).length > 0 );
 
     // Render with PIXI ------
 
@@ -479,7 +572,7 @@ function drawGraph(graph) {
     graph.nodes.forEach((node) => {
         node.gfx = new PIXI.Graphics();
         node.gfx.lineStyle(0.5, 0xFFFFFF);
-        node.gfx.beginFill(getInterpolatedColor(distances[node.id] / Math.max(...Object.values(distances))));
+        node.gfx.beginFill(getInterpolatedColor(node.distance / 3));
         node.gfx.drawCircle(0, 0, node.radius );
         node.gfx.interactive = true;
         node.gfx.hitArea = new PIXI.Circle(0, 0, node.radius);
@@ -539,10 +632,11 @@ function drawGraph(graph) {
     // dragging the nodes around is perhaps less useful than zooming
     canvas = d3.select(app.view)
     canvas.call(
-        d3.zoom().scaleExtent([0.5, 3]).on("zoom", zoomAndPan)
+        d3.zoom().scaleExtent([0.1, 3]).on("zoom", zoomAndPan)
     );
 
     // ticked()
+    simulation.on('tick', ticked);
     function ticked() {
         // requestAnimationFrame(ticked); //this d3 on.ticker can be replaced by PIXI's "requestAnimationFrame" but the system is then too excited. See above
         graph.nodes.forEach((node) => {
@@ -668,7 +762,7 @@ function focus(d,ev) {
         unfocus();
     } else {
         rootSelectedNode = d;
-        markSelected(d);
+        markSelected(d, 2);
     }
     updateColor();  
 }
@@ -679,20 +773,35 @@ function unfocus() {
     rootSelectedNode = {};
 }
 
-function markSelected(d){
-    graph.nodes.forEach(n => {n.marked = false})
-    graph.links.forEach(l => {l.marked = false})
-    d.marked = true;
-    let linked = [];
-    graph.links.filter(l => 
-        l.source == d | l.target == d
-    ).forEach(l => {
-        l.marked = true;
-        linked.push(l.source.id);
-        linked.push(l.target.id)
-    });
-    graph.nodes.forEach(n => n.marked = linked.includes(n.id) ? true : false)
+function markSelected(startNode, maxDepth) {
+    graph.nodes.forEach(n => n.marked = false);
+    graph.links.forEach(l => l.marked = false);
+
+    let visited = new Set();
+    let queue = [{ node: startNode, depth: 0 }];
+
+    while (queue.length > 0) {
+        const { node, depth } = queue.shift();
+
+        if (visited.has(node.id) || depth > maxDepth) continue;
+
+        node.marked = true;
+        visited.add(node.id);
+        graph.links.forEach(link => {
+            const isConnected = link.source === node || link.target === node;
+            if (isConnected) {
+                link.marked = true;
+
+                const neighbor = link.source === node ? link.target : link.source;
+
+                if (!visited.has(neighbor.id)) {
+                    queue.push({ node: neighbor, depth: depth + 1 });
+                }
+            }
+        });
+    }
 }
+
 
 function updateColor() {
     graph.nodes.filter(n => !n.marked).forEach(n => {
@@ -711,21 +820,24 @@ function updateColor() {
 // Graph updates ------------
 
 /** Updates the graph with data from a new set of countries */
-function updateGraph(){
-        document.getElementById("upgradeGraphButton").disabled = true; 
-        simulation.stop();
-        graph = graphstore = null;
-        loadinginfo.style('display', 'block');
-        updatingGraph.style('display', 'block');
-        let checked = [];
-        let boxes = d3.selectAll("input[type='checkbox']:checked")
-        boxes._groups[0].forEach(b=>{
-            checked.push(b.value)
-        });
-        console.log(checked);
-        app.stage.removeChildren();
-        // wait before launching
-        getGraphData(checked);
+async function updateGraph() {
+    document.getElementById("upgradeGraphButton").disabled = true;
+    simulation.stop();
+    graph = graphstore = null;
+    loadinginfo.style('display', 'block');
+    updatingGraph.style('display', 'block');
+    // let checked = [];
+    // let boxes = d3.selectAll("input[type='checkbox']:checked")
+    // boxes._groups[0].forEach(b=>{
+    //     checked.push(b.value)
+    // });
+    // console.log(checked);
+    app.stage.removeChildren();
+    // wait before launching
+    ({ graph, candidateRootsIDs } = await getOrCreateCachedGraph(useCache = false));
+    graph = drawGraph(graph, candidateRootsIDs);
+    getInstitutionList(graph.nodes);
+    document.getElementById("upgradeGraphButton").disabled = false;
 }
 
 // TODO add element without destroying everything
