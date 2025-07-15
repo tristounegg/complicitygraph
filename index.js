@@ -559,6 +559,7 @@ function computeAllConnectedCounts(graph, candidateRootsIDs) {
     return graph;
 }
 
+let zoom;
 /** Draws the graph using D3js and PIXIjs 
  * @param graph A JSON encoded set of nodes and links
 */
@@ -669,12 +670,12 @@ function drawGraph(graph, candidateRootsIDs) {
 
     app.stage.children.sort((itemA, itemB) => itemA.zIndex - itemB.zIndex);
 
-    // dragging the nodes around is perhaps less useful than zooming
-    canvas = d3.select(app.view)
-    canvas.call(
-        d3.zoom().scaleExtent([0.1, 3]).on("zoom", zoomAndPan)
-    );
+    zoom = d3.zoom()
+        .scaleExtent([0.1, 3])
+        .on("zoom", zoomAndPan);
 
+    canvas = d3.select(app.view);
+    canvas.call(zoom);
     // ticked()
     simulation.on('tick', ticked);
     function ticked() {
@@ -793,6 +794,25 @@ function showHoverLabel(node, ev) {
         .text(node.label);
 }
 
+function centerOnNode(d) {
+    const canvas = d3.select(app.view); // canvas DOM element wrapped in D3
+    const scale = transform.k;
+
+    const centerX = app.renderer.view.width / 2;
+    const centerY = app.renderer.view.height / 2;
+
+    const translateX = centerX - d.x * scale;
+    const translateY = centerY - d.y * scale;
+
+    const newTransform = d3.zoomIdentity
+        .translate(translateX, translateY)
+        .scale(scale);
+
+    canvas.call(zoom.transform, newTransform); // no .transition()
+}
+
+
+
 function focus(d,ev) {
     showHoverLabel(d,ev); // nececessary for touch screen
     if (rootSelectedNode == d) {
@@ -800,6 +820,7 @@ function focus(d,ev) {
     } else {
         rootSelectedNode = d;
         markSelected(d, 2);
+        centerOnNode(d);
     }
     updateColor(); 
     console.log("focus on", d);

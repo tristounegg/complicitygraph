@@ -10,32 +10,37 @@ WHERE {
   VALUES ?org { JSVAR:ORGID }  
 
   {
-    ?org wdt:P169 ?ceo.
-    BIND(?ceo AS ?item)
+    ?org p:P169 ?ceoStatement.
+    ?ceoStatement ps:P169 ?item.
+    OPTIONAL { ?ceoStatement pq:P582 ?endTime. }
     BIND("hasCEO" AS ?typeOfLink)
   }
-  UNION
-  {
-    ?org wdt:P1037 ?director.
-    BIND(?director AS ?item)
+  UNION {
+    ?org p:P1037 ?dirStatement.
+    ?dirStatement ps:P1037 ?item.
+    OPTIONAL { ?dirStatement pq:P582 ?endTime. }
     BIND("hasDirector" AS ?typeOfLink)
   }
-  UNION
-  {
-    ?org wdt:P488 ?chair.
-    BIND(?chair AS ?item)
+  UNION {
+    ?org p:P488 ?chairStatement.
+    ?chairStatement ps:P488 ?item.
+    OPTIONAL { ?chairStatement pq:P582 ?endTime. }
     BIND("hasChairPerson" AS ?typeOfLink)
   }
-    UNION
-  {
-    ?org wdt:P3320 ?boardmember.
-    BIND(?boardmember AS ?item)
+  UNION {
+    ?org p:P3320 ?boardStatement.
+    ?boardStatement ps:P3320 ?item.
+    OPTIONAL { ?boardStatement pq:P582 ?endTime. }
     BIND("hasBoardMember" AS ?typeOfLink)
   }
-  # Optional: get labels for items and orgs
+
+  FILTER ( !BOUND(?endTime) || ?endTime >= "2023-10-01T00:00:00Z"^^xsd:dateTime )
+
   OPTIONAL { ?item wdt:P31 ?instanceOf. }
   OPTIONAL { ?item rdfs:label ?itemLabel. FILTER(LANG(?itemLabel) = "en") }
   OPTIONAL { ?org rdfs:label ?linkToLabel. FILTER(LANG(?linkToLabel) = "en") }
+
   BIND(?org AS ?linkTo)
+
   SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,es,fr". }
 }
