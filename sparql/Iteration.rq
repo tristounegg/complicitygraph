@@ -8,7 +8,8 @@ SELECT DISTINCT
   ?instanceOfLabel
 WHERE {
   VALUES ?perpetrator { SVAR:SUBPERPETRATOR }
-  # Owner/parent/child orgs.  #  add Owner of?
+
+  # Ownership and organizational relationships
   {
     ?perpetrator wdt:P127+ ?owner.
     BIND(?owner AS ?item)
@@ -21,14 +22,12 @@ WHERE {
     BIND(?perpetrator AS ?linkTo)
     BIND("ownerOf" AS ?typeOfLink)
   }
- 
   UNION {
-  ?perpetrator wdt:P355+ ?childOrg.
-  BIND(?childOrg AS ?item)
-  BIND(?perpetrator AS ?linkTo)
-  BIND("childOrgOf" AS ?typeOfLink)
-    }
-
+    ?perpetrator wdt:P355+ ?childOrg.
+    BIND(?childOrg AS ?item)
+    BIND(?perpetrator AS ?linkTo)
+    BIND("childOrgOf" AS ?typeOfLink)
+  }
   UNION {
     ?perpetrator wdt:P749+ ?parentOrg.
     BIND(?parentOrg AS ?item)
@@ -36,12 +35,19 @@ WHERE {
     BIND("parentOrg" AS ?typeOfLink)
   }
   UNION {
-    ?perpetrator wdt:P361+ ?partof.
+    ?perpetrator wdt:P361+ ?partof .
+    MINUS {
+      ?partof wdt:P31 wd:Q223371. # exclude stock market index
+    }
     BIND(?partof AS ?item)
     BIND(?perpetrator AS ?linkTo)
     BIND("partOf" AS ?typeOfLink)
   }
+
   OPTIONAL { ?item wdt:P31 ?instanceOf. }
+  OPTIONAL { ?item wdt:P576 ?endDate. }
+
+  FILTER ( !BOUND(?endDate) || ?endDate >= "2023-10-01T00:00:00Z"^^xsd:dateTime )
 
   SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,es,fr". }
 }

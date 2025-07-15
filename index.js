@@ -454,62 +454,6 @@ let app = new PIXI.Application({
 }); // Convenience class that automatically creates the renderer, ticker and root container.
 document.body.appendChild(app.view);
 
-// function computeAllConnectedCounts(graph, candidateRootsIDs) {
-//     // Build adjacency list
-//     const adjacency = {};
-//     graph.nodes.forEach(n => adjacency[n.id] = []);
-//     graph.links.forEach(link => {
-//         const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-//         const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-//         adjacency[sourceId].push(targetId);
-//         adjacency[targetId].push(sourceId);
-//     });
-
-//     // Initialize all nodes with null distance
-//     const nodeMap = {};
-//     graph.nodes.forEach(n => {
-//         nodeMap[n.id] = n;
-//         n.linkCount = null;
-//     });
-
-//     // Queue for BFS
-//     const queue = [];
-
-//     // Start from leaf nodes (degree 1) and not in candidateRootsIDs
-//     graph.nodes.forEach(n => {
-//         if (adjacency[n.id].length === 1) {
-//             n.linkCount = 0;
-//             queue.push(n.id);
-//         }
-//     });
-
-//     while (queue.length > 0) {
-//         const currentId = queue.shift();
-//         const currentLevel = nodeMap[currentId].linkCount;
-
-//         adjacency[currentId].forEach(neighborId => {
-//             const neighbor = nodeMap[neighborId];
-//             if (neighbor.linkCount == null) {
-//                 neighbor.linkCount = currentLevel + 1;
-//                 queue.push(neighborId);
-//             } else if (neighbor.linkCount < currentLevel + 1) {
-//                 // Optional: update if this path is longer
-//                 neighbor.linkCount = currentLevel + 1;
-//             }
-//         });
-//     }
-
-//     // Center nodes get the highest count (or remain as is if already set)
-//     candidateRootsIDs.forEach(id => {
-//         if (nodeMap[id]) {
-//             nodeMap[id].linkCount ??= Math.max(...graph.nodes.map(n => n.linkCount || 0)) + 1;
-//         }
-//     });
-//     console.log("computeAllConnectedCounts graph is ", graph, "adjacency", adjacency, "queue", queue, "nodeMap", nodeMap);
-//     return graph;
-// }
-
-
 function computeAllConnectedCounts(graph, candidateRootsIDs) {
     // Build adjacency list
     const adjacency = {};
