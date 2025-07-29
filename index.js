@@ -278,7 +278,7 @@ async function getGraphData() {
     loadinginfo.style('display', 'block');
     loadingGraph.style('display', 'block');
     rootNodes = await getRootNodes();
-    let sparql1 = await (await fetch('sparql/Iteration.rq')).text();
+    let sparql1 = await (await fetch('sparql/Base.rq')).text();
     let req = encodeURIComponent(sparql1.replace("SVAR:SUBPERPETRATOR", rootNodes.join(" ")).replace("/#.*/gm", ''));
     let data = await fetchWikiDataPOST(req);
     ({ nodes, links } = pushItemsToObject(nodes, links, data.results.bindings));

@@ -7,47 +7,95 @@ SELECT DISTINCT
   ?instanceOf
   ?instanceOfLabel
 WHERE {
-  wd:Q124086054 p:P8031 ?perpStmt.
-  ?perpStmt ps:P8031 ?perpetrator.
-
   {
-    ?perpStmt ps:P8031 ?item.
-    BIND("isPerpetrator" AS ?typeOfLink)
-    BIND(?item AS ?linkTo) 
+    VALUES ?typeOfLink { "isPerpetratorWar" "isPerpetratorWestBank" }
+    
+    {
+      ?perpetrator wdt:P361 wd:Q134661623.
+      FILTER(?typeOfLink = "isPerpetratorWar")
+    }
+    UNION
+    {
+      ?perpetrator wdt:P361 wd:Q108704461.
+      FILTER(?typeOfLink = "isPerpetratorWestBank")
+    }
+
+    BIND(?perpetrator AS ?item)
+    BIND(?perpetrator AS ?linkTo)
   }
-  # Owner/parent/child orgs.  #  add Owner of?
-  UNION {
-    ?perpetrator wdt:P127+ ?owner.
-    BIND(?owner AS ?item)
+
+  UNION
+  {
+    # owner of perpetrator
+    {
+      ?perpetrator wdt:P361 wd:Q134661623.  # Gaza War
+    }
+    UNION {
+      ?perpetrator wdt:P361 wd:Q108704461.  # West Bank
+    }
+
+    ?perpetrator wdt:P127+ ?item.
     BIND(?perpetrator AS ?linkTo)
     BIND("ownedBy" AS ?typeOfLink)
   }
-  UNION {
-    ?perpetrator wdt:P1830+ ?ownerOf.
-    BIND(?ownerOf AS ?item)
+
+  UNION
+  {
+    {
+      ?perpetrator wdt:P361 wd:Q134661623.
+    }
+    UNION {
+      ?perpetrator wdt:P361 wd:Q108704461.
+    }
+
+    ?perpetrator wdt:P1830+ ?item.
     BIND(?perpetrator AS ?linkTo)
     BIND("ownerOf" AS ?typeOfLink)
   }
-  UNION {
-    ?perpetrator wdt:P355+ ?childOrg.
-    BIND(?childOrg AS ?item)
+
+  UNION
+  {
+    {
+      ?perpetrator wdt:P361 wd:Q134661623.
+    }
+    UNION {
+      ?perpetrator wdt:P361 wd:Q108704461.
+    }
+
+    ?perpetrator wdt:P355+ ?item.
     BIND(?perpetrator AS ?linkTo)
     BIND("childOrgOf" AS ?typeOfLink)
   }
-  UNION {
-    ?perpetrator wdt:P749+ ?parentOrg.
-    BIND(?parentOrg AS ?item)
+
+  UNION
+  {
+    {
+      ?perpetrator wdt:P361 wd:Q134661623.
+    }
+    UNION {
+      ?perpetrator wdt:P361 wd:Q108704461.
+    }
+
+    ?perpetrator wdt:P749+ ?item.
     BIND(?perpetrator AS ?linkTo)
     BIND("parentOrg" AS ?typeOfLink)
   }
-  UNION {
-    ?perpetrator wdt:P361+ ?partof.
-    BIND(?partof AS ?item)
+
+  UNION
+  {
+    {
+      ?perpetrator wdt:P361 wd:Q134661623.
+    }
+    UNION {
+      ?perpetrator wdt:P361 wd:Q108704461.
+    }
+
+    ?perpetrator wdt:P361+ ?item.
     BIND(?perpetrator AS ?linkTo)
     BIND("partOf" AS ?typeOfLink)
   }
 
   OPTIONAL { ?item wdt:P31 ?instanceOf. }
 
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,es,fr". }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,fr,es". }
 }
