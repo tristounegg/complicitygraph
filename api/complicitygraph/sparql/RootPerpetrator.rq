@@ -1,0 +1,17 @@
+SELECT DISTINCT 
+  ?item
+  ?itemLabel 
+  ?instanceOf
+  ?instanceOfLabel
+WHERE {
+  wd:Q124086054 p:P8031 ?perpStmt.
+  ?perpStmt ps:P8031 ?perpetrator.
+  {
+  ?perpStmt ps:P8031 ?item.
+  }
+    
+   OPTIONAL { ?item wdt:P31 ?instanceOf. }
+
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}
+LIMIT 1000

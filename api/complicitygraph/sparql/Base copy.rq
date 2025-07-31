@@ -1,0 +1,101 @@
+SELECT DISTINCT 
+  ?item
+  ?itemLabel 
+  ?linkTo
+  ?linkToLabel 
+  ?typeOfLink
+  ?instanceOf
+  ?instanceOfLabel
+WHERE {
+  {
+    VALUES ?typeOfLink { "isPerpetratorWar" "isPerpetratorWestBank" }
+    
+    {
+      ?perpetrator wdt:P361 wd:Q134661623.
+      FILTER(?typeOfLink = "isPerpetratorWar")
+    }
+    UNION
+    {
+      ?perpetrator wdt:P361 wd:Q108704461.
+      FILTER(?typeOfLink = "isPerpetratorWestBank")
+    }
+
+    BIND(?perpetrator AS ?item)
+    BIND(?perpetrator AS ?linkTo)
+  }
+
+  UNION
+  {
+    # owner of perpetrator
+    {
+      ?perpetrator wdt:P361 wd:Q134661623.  # Gaza War
+    }
+    UNION {
+      ?perpetrator wdt:P361 wd:Q108704461.  # West Bank
+    }
+
+    ?perpetrator wdt:P127+ ?item.
+    BIND(?perpetrator AS ?linkTo)
+    BIND("ownedBy" AS ?typeOfLink)
+  }
+
+  UNION
+  {
+    {
+      ?perpetrator wdt:P361 wd:Q134661623.
+    }
+    UNION {
+      ?perpetrator wdt:P361 wd:Q108704461.
+    }
+
+    ?perpetrator wdt:P1830+ ?item.
+    BIND(?perpetrator AS ?linkTo)
+    BIND("ownerOf" AS ?typeOfLink)
+  }
+
+  UNION
+  {
+    {
+      ?perpetrator wdt:P361 wd:Q134661623.
+    }
+    UNION {
+      ?perpetrator wdt:P361 wd:Q108704461.
+    }
+
+    ?perpetrator wdt:P355+ ?item.
+    BIND(?perpetrator AS ?linkTo)
+    BIND("childOrgOf" AS ?typeOfLink)
+  }
+
+  UNION
+  {
+    {
+      ?perpetrator wdt:P361 wd:Q134661623.
+    }
+    UNION {
+      ?perpetrator wdt:P361 wd:Q108704461.
+    }
+
+    ?perpetrator wdt:P749+ ?item.
+    BIND(?perpetrator AS ?linkTo)
+    BIND("parentOrg" AS ?typeOfLink)
+  }
+
+  UNION
+  {
+    {
+      ?perpetrator wdt:P361 wd:Q134661623.
+    }
+    UNION {
+      ?perpetrator wdt:P361 wd:Q108704461.
+    }
+
+    ?perpetrator wdt:P361+ ?item.
+    BIND(?perpetrator AS ?linkTo)
+    BIND("partOf" AS ?typeOfLink)
+  }
+
+  OPTIONAL { ?item wdt:P31 ?instanceOf. }
+
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,fr,es". }
+}

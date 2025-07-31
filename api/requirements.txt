@@ -1,0 +1,16 @@
+djangorestframework
+django-filter
+django-cors-headers
+
+markdown
+
+regex
+requests
+logging
+urllib3
+
+
+networkx
+gunicorn
+
+celery

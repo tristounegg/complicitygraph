@@ -1,0 +1,25 @@
+SELECT DISTINCT 
+  ?item
+  ?itemLabel 
+  ?linkTo
+  ?linkToLabel 
+  ?typeOfLink
+  ?instanceOf
+  ?instanceOfLabel
+WHERE {    
+    {
+      ?perpetrator wdt:P361 wd:Q134661623.
+    BIND("isPerpetratorWar" AS ?typeOfLink)    }
+    UNION
+    {
+      ?perpetrator wdt:P361 wd:Q108704461.
+      BIND("isPerpetratorWestBank" AS ?typeOfLink)
+    }
+
+    BIND(?perpetrator AS ?item)
+    BIND(?perpetrator AS ?linkTo)
+
+  OPTIONAL { ?item wdt:P31 ?instanceOf. }
+
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en,fr,es". }
+}
