@@ -83,11 +83,6 @@ def fetch_ceo_accomplices():
     return serializer.save()
 
 
-def distance_to_center_calculation():
-    # to do
-    return
-
-
 def upgrade_accomplices():
     fetch_base_accomplices()
     # this two can run asynchronously
@@ -95,4 +90,3 @@ def upgrade_accomplices():
     fetch_indirect_accomplices()
     # sync needed
     fetch_indirect_accomplices()
-    distance_to_center_calculation()

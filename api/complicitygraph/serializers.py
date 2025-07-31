@@ -28,7 +28,7 @@ class WikidataField(serializers.Field):
 class WikiDataSparqlBaseSerializer(serializers.Serializer):
     item = WikidataField()
     itemLabel = WikidataField()
-    instanceOf = WikidataField()
+    instanceOf = WikidataField(required=False)
     instanceOfLabel = WikidataField(required=False)
     subclassOf = WikidataField(required=False)
     subclassOfLabel = WikidataField(required=False)
@@ -42,7 +42,7 @@ class WikiDataSparqlBaseSerializer(serializers.Serializer):
             defaults = {
                 "id": validated_data["item"].split("/")[-1],
                 "label": validated_data["itemLabel"],
-                "distance_to_center": 0 if self.context.get("base", False) else None,
+                "distance_to_center": 0,
                 "base": True,
                 "group": 1,  # Default group for base accomplice
             }
@@ -50,7 +50,7 @@ class WikiDataSparqlBaseSerializer(serializers.Serializer):
             defaults = {
                 "id": validated_data["item"].split("/")[-1],
                 "label": validated_data["itemLabel"],
-                "distance_to_center": 0 if self.context.get("base", False) else None,
+                "distance_to_center": None,
                 "group": 2,
             }
         accomplice, created = models.Accomplice.objects.update_or_create(

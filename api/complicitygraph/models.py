@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
- from . import wikidata
+
 
 class InstanceOf(models.Model):
     label = models.CharField(max_length=255, blank=True, null=True)
@@ -20,6 +20,7 @@ class Accomplice(models.Model):
     label = models.CharField(max_length=255, blank=True, null=True)
     base = models.BooleanField(default=False)
     distance_to_center = models.IntegerField(blank=True, null=True)
+    link_count = models.IntegerField(default=0, blank=True, null=True)
     # used by PIXI.Container on the frontend
     group = models.IntegerField(blank=True, null=True)
 
@@ -46,10 +47,3 @@ class GraphEdge(models.Model):
 
     class Meta:
         unique_together = (("source", "target", "type_of_link"),)
-
-    def save(self, *args, **kwargs):
-        is_new = self.pk is None
-        super().save(*args, **kwargs)
-
-        if is_new:
-            wikidata.do_something_async.delay(self.id)

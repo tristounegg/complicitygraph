@@ -13,7 +13,9 @@ services:
       - media_volume:/app/media  
     ports:
       - "8000:8000"
+    restart: unless-stopped
 
+  
 
   nginx:
     image: nginx

@@ -101,14 +101,6 @@ async function getGraphData() {
 
 let width = screen.availWidth, height = screen.availHeight;
 
-let interpolate = d3.interpolateRgb("#D01B1B", "#2930f8"); // violet → red
-function getInterpolatedColor(t) {
-    const rgbString = interpolate(t);
-    const rgb = d3.color(rgbString);  
-    // Convert to 0xRRGGBB format
-    return (rgb.r << 16) + (rgb.g << 8) + rgb.b;
-}
-
 
 let simulation = d3.forceSimulation()
     .force('link', d3.forceLink().id((d) => d.id))
@@ -146,10 +138,7 @@ function drawGraph(graph) {
     // count incoming links to set node sizes, and remove nodes with no radius, stemming from super-ideologies
     // to do : 
     // graph = computeAllConnectedCounts(graph);
-    graph.nodes.forEach((node) => {
-        if (!node.linkCount) node.linkCount = 1;
-        node.radius = node.linkCount;
-    });
+
     simulation.force("charge", d3.forceManyBody()
         .strength(d => -50 - (d.linkCount || 0) * 10)  // more repulsion if more links
     )
@@ -175,7 +164,7 @@ function drawGraph(graph) {
         node.gfx = new PIXI.Graphics();
         node.gfx.lineStyle(0.5, 0xFFFFFF);
         const dist = node.distance ?? 0;
-        node.gfx.beginFill(getInterpolatedColor(dist / 3));
+        node.gfx.beginFill(node.colour);
         node.gfx.drawCircle(0, 0, node.radius);
         node.gfx.interactive = true;
         node.gfx.hitArea = new PIXI.Circle(0, 0, node.radius);
@@ -193,7 +182,7 @@ function drawGraph(graph) {
         ;
 
         if (node.group==1) containerperpetrators.addChild(node.gfx);
-        if (node.group == 2) containerIteration1.addChild(node.gfx);;
+        if (node.group == 2) containerIteration1.addChild(node.gfx);
 
         if (["human"].includes(node.instanceOf)) {
             node.gfx.drawRect(-node.radius, -node.radius, node.radius * 2, node.radius * 2)
@@ -215,12 +204,6 @@ function drawGraph(graph) {
         // first iteration graphics
         if (node.group == 2) {
             node.lgfx = new PIXI.Text(
-                node.label, {
-                    fontFamily : 'Maven Pro', 
-                    fontSize: 9 + node.radius / 2, 
-                    fill: node.colour, 
-                    align : 'center'
-                }
             );
             node.lgfx.resolution = 2; // so that the text isn't blury
             containerIteration1.addChild(node.lgfx);
@@ -252,7 +235,7 @@ function drawGraph(graph) {
         graph.nodes.forEach((node) => {
             let { x, y, gfx, lgfx, radius } = node;
             gfx.position = new PIXI.Point(x, y);
-            if (node.group == 2) lgfx.position = new PIXI.Point(x + radius / 2, y + radius / 2);
+            if (node.group == 1) lgfx.position = new PIXI.Point(x + radius / 2, y + radius / 2);
             // if (node.group == 3) lgfx.position = new PIXI.Point(x - radius / 2, y - radius / 2);
             // if (node.group == 4) lgfx.position = new PIXI.Point(x - radius / 2, y - radius / 2);
         });

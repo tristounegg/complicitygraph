@@ -1,6 +1,6 @@
 from django.http import HttpResponse
-from . import models, wikidata
-
+from . import models, wikidata, network
+from django.db.models import Max
 import networkx as nx
 import json
 
@@ -30,42 +30,43 @@ def graph(request):
 
     # build graph
     G = nx.Graph()
+    max_distance = data.aggregate(Max("source__distance_to_center"))[
+        "source__distance_to_center__max"
+    ]
     for graphedge in data:
-        source = graphedge.source
-        target = graphedge.target
+        for node in [graphedge.source, graphedge.target]:
+            G.add_node(
+                node.id,
+                label=node.label,
+                instanceOf=(
+                    node.instance_of.first().label
+                    if node.instance_of.exists()
+                    else None
+                ),
+                radius=(node.link_count * 2 if node.link_count != 0 else 5),
+                colour=network.get_color_from_distance_to_center(
+                    node.distance_to_center / max_distance
+                ),
+                group=node.group,
+            )
 
-        G.add_node(
-            source.id,
-            label=source.label,
-            instanceOf=(
-                source.instance_of.first().label
-                if source.instance_of.exists()
-                else None
-            ),
-            distances=source.distance_to_center,
-            group=source.group,
-        )
-        G.add_node(
-            target.id,
-            label=target.label,
-            instanceOf=(
-                source.instance_of.first().label
-                if source.instance_of.exists()
-                else None
-            ),
-            distances=source.distance_to_center,
-            group=target.group,
+        G.add_edge(
+            graphedge.source.id, graphedge.target.id, typeOfLink=graphedge.type_of_link
         )
 
-        G.add_edge(source.id, target.id, typeOfLink=graphedge.type_of_link)
-
-    # calculate distances
-    target_nodes = [n for n in data if n.target.distance == 0]
+    # re calculate distances
+    # to do : radius should be after
+    target_nodes = [n.target.id for n in data if n.target.base is True]
     lengths = nx.multi_source_dijkstra_path_length(G, target_nodes)
     for node, dist in lengths.items():
-        node = models.Accomplice.objects.get(id=node.id)
+        node = models.Accomplice.objects.get(id=node)
         node.distance_to_center = dist
         node.save()
 
+    link_counts = network.compute_all_connected_counts_nx(G, target_nodes)
+    for node_id, count in link_counts.items():
+        node = models.Accomplice.objects.get(id=node_id)
+        node.link_count = count
+        node.save()
     json_graph = nx.node_link_data(G, edges="edges")
     return HttpResponse(content=json.dumps(json_graph), content_type="application/json")
