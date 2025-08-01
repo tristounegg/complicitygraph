@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import environ
+
+env = environ.Env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,18 +32,22 @@ ALLOWED_HOSTS = []
 
 
 # Application definition
+LOCAL_APPS = [
+    "wikidata",
+    "graph",
+]
 
 INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
-    "complicitygraph.apps.ComplicitygraphConfig",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-]
+] + LOCAL_APPS
+
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -130,3 +137,7 @@ MEDIA_ROOT = "/app/media"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# Wikidata settings
+WIKIDATA_REFRESH_DELAY = env.bool("WIKIDATA_REFRESH_DELAY", 3600 * 24)
