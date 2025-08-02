@@ -5,8 +5,8 @@ let loadingGraph = d3.select("#loadingGraph");
 let constructingGraph = d3.select("#constructingGraph");
 let updatingGraph = d3.select("#updatingGraph");
 let loadinginfotext = "";
-// neccessary globals
-let graph, graphstore, canvas ; 
+// necessary globals
+let graph, graphstore, canvas ;
 
 // Make a list of countries
 //getCountryList();
@@ -87,7 +87,7 @@ async function getOrCreateCachedGraph(useCache=true) {
 }
 
 // INITIALISATION
-document.getElementById("upgradeGraphButton").disabled = true; 
+document.getElementById("upgradeGraphButton").disabled = true;
 async function initGraph() {
     ({ graph, candidateRootsIDs } = await getOrCreateCachedGraph());
     graph = drawGraph(graph, candidateRootsIDs);
@@ -96,12 +96,12 @@ async function initGraph() {
 
 initGraph();
 
-/** Fetches csv data wrom wikidata 
- * @param req a URI ecoded SPARQL query 
+/** Fetches csv data wrom wikidata
+ * @param req a URI ecoded SPARQL query
 */
 async function fetchWikiData(req) {
-    let response = await fetch(req, {headers: { "Accept": "text/csv"}});  
-    let text = await response.text(); 
+    let response = await fetch(req, {headers: { "Accept": "text/csv"}});
+    let text = await response.text();
     let data = Papa.parse(text,{
         header:true,
         skipEmptyLines:true,
@@ -117,10 +117,10 @@ async function fetchWikiDataPOST(query) {
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded', 
+      'Content-Type': 'application/x-www-form-urlencoded',
       'Accept': 'application/sparql-results+json',
     },
-    body: `query=${(query)}`,  
+    body: `query=${(query)}`,
   });
 
   if (!response.ok) {
@@ -130,9 +130,9 @@ async function fetchWikiDataPOST(query) {
   const data = await response.json();
   return data;
 }
-/** Constructs a list of countnries to choose from. 
- * On first run, launch graph construction. */ 
-async function getCountryList() { 
+/** Constructs a list of countnries to choose from.
+ * On first run, launch graph construction. */
+async function getCountryList() {
     loadinginfo.style('display', 'block');
     let sparql = await (await fetch('sparql/CountryList.rq')).text();
     let req = endpoint + encodeURIComponent(sparql.replace("/#.*/gm",''));
@@ -148,7 +148,7 @@ async function getCountryList() {
             .attr("type","checkbox")
             .attr("name", c["countryLabel"])
             .attr("id",cid)
-            .attr("value", cval) 
+            .attr("value", cval)
             //.attr("onclick","updateGraph()")
         ;
         newdiv
@@ -201,10 +201,10 @@ async function buildItemList(nodes, listName) {
 async function getInstitutionList(nodes) {
     loadinginfo.style('display', 'block');
     nodes.sort((a, b) => (a["label"] > b["label"]) ? 1 : ((b["label"] > a["label"]) ? -1 : 0))
-    
+
     institutionNodes = nodes.filter(node => node.instanceOf !== "human");
     humanNodes = nodes.filter(node => node.instanceOf == "human");
-    
+
     await buildItemList(institutionNodes, "institutions");
     await buildItemList(humanNodes, "humans");
 }
@@ -354,7 +354,7 @@ async function getGraphData() {
     // store the full graph for later use
     graphstore = Object.assign({}, graph);
 
-    
+
     return { links, nodes, candidateRootsIDs };
 }
 
@@ -414,7 +414,7 @@ function computeDistancesFromRoot(candidateRoots, nodes, links) {
 let interpolate = d3.interpolateRgb("#D01B1B", "#2930f8"); // violet → red
 function getInterpolatedColor(t) {
     const rgbString = interpolate(t);
-    const rgb = d3.color(rgbString);  
+    const rgb = d3.color(rgbString);
     // Convert to 0xRRGGBB format
     return (rgb.r << 16) + (rgb.g << 8) + rgb.b;
 }
@@ -432,7 +432,7 @@ let simulation = d3.forceSimulation()
             // .id(d => d.id)
             // .distance(link => {
             //     // Increase distance if source or target is group 3 (CEO)
-            //     if ((typeof link.source === 'object' ? link.source.group : null)in [3,4] || 
+            //     if ((typeof link.source === 'object' ? link.source.group : null)in [3,4] ||
             //         (typeof link.target === 'object' ? link.target.group : null) in [3,4]) {
             //         return 150;  // You can tweak this value
             //     }
@@ -448,10 +448,10 @@ let simulation = d3.forceSimulation()
 ;
 
 let app = new PIXI.Application({
-    width : width, 
+    width : width,
     height : height ,
-    antialias: !0, 
-    transparent: !0, 
+    antialias: !0,
+    transparent: !0,
     resolution: 1
 }); // Convenience class that automatically creates the renderer, ticker and root container.
 document.body.appendChild(app.view);
@@ -562,7 +562,7 @@ function computeAllConnectedCounts(graph, candidateRootsIDs) {
 }
 
 let zoom;
-/** Draws the graph using D3js and PIXIjs 
+/** Draws the graph using D3js and PIXIjs
  * @param graph A JSON encoded set of nodes and links
 */
 function drawGraph(graph, candidateRootsIDs) {
@@ -582,7 +582,7 @@ function drawGraph(graph, candidateRootsIDs) {
     // count incoming links to set node sizes, and remove nodes with no radius, stemming from super-ideologies
     // graph.links.forEach(function(link){
     //     if (!link.target["linkCount"]) link.target["linkCount"] = 0;
-    //     link.target["linkCount"]++;    
+    //     link.target["linkCount"]++;
     // });
     graph = computeAllConnectedCounts(graph, candidateRootsIDs);
     graph.nodes.forEach((node) => {
@@ -594,7 +594,7 @@ function drawGraph(graph, candidateRootsIDs) {
     )
     graph.links = graph.links.filter(l => ! isNaN(l.source.radius));
     // remove freely floating nodes
-    // graph.nodes = graph.nodes.filter(n =>  graph.links.filter(l => 
+    // graph.nodes = graph.nodes.filter(n =>  graph.links.filter(l =>
     //     l.source == n | l.target == n
     // ).length > 0 );
 
@@ -620,7 +620,7 @@ function drawGraph(graph, candidateRootsIDs) {
         node.gfx.interactive = true;
         node.gfx.hitArea = new PIXI.Circle(0, 0, node.radius);
         node.gfx.mouseover = function(ev) { showHoverLabel(node, ev)};
-        node.gfx.on("pointerdown", function(ev) { focus(node,ev);}); 
+        node.gfx.on("pointerdown", function(ev) { focus(node,ev);});
         node.gfx
            .on('mousedown', onDragStart)
            .on('touchstart', onDragStart)
@@ -641,13 +641,13 @@ function drawGraph(graph, candidateRootsIDs) {
         if (["human"].includes(node.instanceOf)) {
             node.gfx.drawRect(-node.radius, -node.radius, node.radius * 2, node.radius * 2)
         }
-        // main persecutors 
+        // main persecutors
         if (node.group == 2) {
             node.lgfx = new PIXI.Text(
                 node.label, {
-                    fontFamily : 'Maven Pro', 
-                    fontSize: 9 + node.radius / 2, 
-                    fill: node.colour, 
+                    fontFamily : 'Maven Pro',
+                    fontSize: 9 + node.radius / 2,
+                    fill: node.colour,
                     align : 'center'
                 }
             );
@@ -703,7 +703,7 @@ function drawGraph(graph, candidateRootsIDs) {
         // when this point is reached, the notification about loading can be removed
         loadinginfo.style('display', 'none');
         constructingGraph.style('display', 'none');
-        document.getElementById("upgradeGraphButton").disabled = false; 
+        document.getElementById("upgradeGraphButton").disabled = false;
     }
 
     simulation.alphaTarget(0.05).restart(); // give it an initial push
@@ -712,7 +712,7 @@ function drawGraph(graph, candidateRootsIDs) {
 
 // DRAG, PAN AND ZOOM
 
-var transform = {k:1,x:0,y:0}; 
+var transform = {k:1,x:0,y:0};
 function zoomAndPan() {
     transform = d3.event.transform;
     app.stage.scale.x = app.stage.scale.y = d3.event.transform.k;
@@ -725,7 +725,7 @@ function zoomAndPan() {
 // pixi node drag
 let draggingNode = false;
 function onDragStart(event){
-    simulation.alphaTarget(0.05).restart(); // the higer, the more sensitive and excited.
+    simulation.alphaTarget(0.05).restart(); // the higher, the more sensitive and excited.
     this.data = event.data;
     var newPosition = this.data.getLocalPosition(this.parent);
     let node = graph.nodes.filter(n=>n.gfx == this)[0];
@@ -824,7 +824,7 @@ function focus(d,ev) {
         markSelected(d, 2);
         centerOnNode(d);
     }
-    updateColor(); 
+    updateColor();
     console.log("focus on", d);
 }
 
@@ -866,12 +866,12 @@ function markSelected(startNode, maxDepth) {
 
 function updateColor() {
     graph.nodes.filter(n => !n.marked).forEach(n => {
-        n.gfx.alpha = 0.2; 
+        n.gfx.alpha = 0.2;
         if (n.group == 2) n.lgfx.alpha=0.2
     });
     graph.links.filter(l => !l.marked).forEach(l => l.alpha = 0.1 );
     graph.nodes.filter(n => n.marked).forEach(n => {
-        n.gfx.alpha = 1; 
+        n.gfx.alpha = 1;
         if (n.group == 2) n.lgfx.alpha =1
     });
     graph.links.filter(l => l.marked).forEach(l => l.alpha = 1);
@@ -905,7 +905,7 @@ function restoreGraph(){
     graphstore.links.forEach(sl => {
         if (graph.links.filter(l=> l.id == sl.id).length==0) graph.links.push(Object.assign({}, sl));
     })
-    // relink nodes correcly
+    // relink nodes correctly
     graph.links.forEach(l => {
         l.source = graph.nodes.filter(n=> n.id == l.source.id)[0];
         l.target = graph.nodes.filter(n=> n.id == l.target.id)[0];
@@ -918,7 +918,7 @@ function restoreGraph(){
 
 COMPLICITYGRAPH - explore ideologies of political perpetrators with SPAQRL requests to WikiData, D3 and PixiJS.
 
-forked from ideogaph 
+forked from ideogaph
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

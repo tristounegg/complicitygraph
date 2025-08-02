@@ -3,43 +3,56 @@ services:
     build:
       context: ./api
     command: >
-      sh -c "python manage.py migrate &&
-             python manage.py collectstatic --noinput &&
-             gunicorn config.wsgi:application --timeout 120 --reload --bind 0.0.0.0:8000"
+      sh -c "python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application   --threads 4 --timeout 120 --reload --bind 0.0.0.0:8000"
 
     volumes:
       - ./api:/app
-      - static_volume:/app/static 
-      - media_volume:/app/media  
+      - static_volume:/app/static
+      - media_volume:/app/media
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     restart: unless-stopped
-
-  
 
   nginx:
     image: nginx
     volumes:
-      - ./front:/usr/share/nginx/html  # Just serve static files
+      - ./front:/usr/share/nginx/html # Just serve static files
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
       - static_volume:/app/backend/static
       - media_volume:/app/backend/media
     ports:
-      - "8080:80" 
+      - "8080:80"
     depends_on:
       - api
-  
+
   # not used yet
-  db:
-    image: postgres:15-alpine
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  # db:
+  #   image: postgres:15-alpine
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   environment:
+  #     POSTGRES_DB: ${POSTGRES_DB}
+  #     POSTGRES_USER: ${POSTGRES_USER}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+  # neo4j:
+  #   image: neo4j:5.19.0
+  #   ports:
+  #     - "7474:7474"
+  #     - "7687:7687"
+  #   volumes:
+  #     - neo4j_data:/data
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - NEO4J_AUTH=${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-testpassword}
+  #   restart: unless-stopped
 
 volumes:
   postgres_data:
   static_volume:
   media_volume:
+  neo4j_data:

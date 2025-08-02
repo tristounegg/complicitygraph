@@ -4,8 +4,8 @@ let loadingGraph = d3.select("#loadingGraph");
 let constructingGraph = d3.select("#constructingGraph");
 let updatingGraph = d3.select("#updatingGraph");
 let loadinginfotext = "";
-// neccessary globals
-let graph, graphstore, canvas ; 
+// necessary globals
+let graph, graphstore, canvas ;
 
 async function getOrCreateCachedGraph(useCache=true) {
     const cacheKey = `graph`;
@@ -26,7 +26,7 @@ async function getOrCreateCachedGraph(useCache=true) {
 }
 
 // INITIALISATION
-document.getElementById("upgradeGraphButton").disabled = true; 
+document.getElementById("upgradeGraphButton").disabled = true;
 async function initGraph() {
     ( graph = await getOrCreateCachedGraph());
     graph = drawGraph(graph);
@@ -73,10 +73,10 @@ async function buildItemList(nodes, listName) {
 async function getInstitutionList(nodes) {
     loadinginfo.style('display', 'block');
     nodes.sort((a, b) => (a["label"] > b["label"]) ? 1 : ((b["label"] > a["label"]) ? -1 : 0))
-    
+
     institutionNodes = nodes.filter(node => node.instanceOf !== "human");
     humanNodes = nodes.filter(node => node.instanceOf == "human");
-    
+
     await buildItemList(institutionNodes, "institutions");
     await buildItemList(humanNodes, "humans");
 }
@@ -85,7 +85,12 @@ let perpetrators = []
 async function getGraphData() {
     loadingGraph.text("Fetching extra graph links from WikiData...this can take a long time");
     try {
-        const response = await fetch("/api/v1/graph");
+        const params = new URLSearchParams({
+            from_accomplices: None,
+            country=
+        });
+
+        const response = await fetch(`/api/v1/graph/graph/?${params.toString()}`);
         const graph = await response.json();
 
         const graphstore = { ...graph };
@@ -113,10 +118,10 @@ let simulation = d3.forceSimulation()
 ;
 
 let app = new PIXI.Application({
-    width : width, 
+    width : width,
     height : height ,
-    antialias: !0, 
-    transparent: !0, 
+    antialias: !0,
+    transparent: !0,
     resolution: 1
 }); // Convenience class that automatically creates the renderer, ticker and root container.
 document.body.appendChild(app.view);
@@ -136,7 +141,7 @@ function drawGraph(graph) {
 
 
     // count incoming links to set node sizes, and remove nodes with no radius, stemming from super-ideologies
-    // to do : 
+    // to do :
     // graph = computeAllConnectedCounts(graph);
 
     simulation.force("charge", d3.forceManyBody()
@@ -144,7 +149,7 @@ function drawGraph(graph) {
     )
     // graph.links = graph.links.filter(l => ! isNaN(l.source.radius));
     // remove freely floating nodes
-    // graph.nodes = graph.nodes.filter(n =>  graph.links.filter(l => 
+    // graph.nodes = graph.nodes.filter(n =>  graph.links.filter(l =>
     //     l.source == n | l.target == n
     // ).length > 0 );
 
@@ -169,7 +174,7 @@ function drawGraph(graph) {
         node.gfx.interactive = true;
         node.gfx.hitArea = new PIXI.Circle(0, 0, node.radius);
         node.gfx.mouseover = function(ev) { showHoverLabel(node, ev)};
-        node.gfx.on("pointerdown", function(ev) { focus(node,ev);}); 
+        node.gfx.on("pointerdown", function(ev) { focus(node,ev);});
         node.gfx
            .on('mousedown', onDragStart)
            .on('touchstart', onDragStart)
@@ -191,9 +196,9 @@ function drawGraph(graph) {
         if (node.group == 1) {
             node.lgfx = new PIXI.Text(
                 node.label, {
-                    fontFamily : 'Maven Pro', 
-                    fontSize: 9 + node.radius / 2, 
-                    fill: node.colour, 
+                    fontFamily : 'Maven Pro',
+                    fontSize: 9 + node.radius / 2,
+                    fill: node.colour,
                     align : 'center'
                 }
             );
@@ -219,7 +224,7 @@ function drawGraph(graph) {
     app.stage.addChild(containerLinks);
     app.stage.addChild(containerperpetrators);
     app.stage.addChild(containerIteration1);
-        
+
     app.stage.children.sort((itemA, itemB) => itemA.zIndex - itemB.zIndex);
 
     zoom = d3.zoom()
@@ -254,7 +259,7 @@ function drawGraph(graph) {
         // when this point is reached, the notification about loading can be removed
         loadinginfo.style('display', 'none');
         constructingGraph.style('display', 'none');
-        document.getElementById("upgradeGraphButton").disabled = false; 
+        document.getElementById("upgradeGraphButton").disabled = false;
     }
 
     simulation.alphaTarget(0.05).restart(); // give it an initial push
@@ -264,7 +269,7 @@ function drawGraph(graph) {
 
 // DRAG, PAN AND ZOOM
 
-var transform = {k:1,x:0,y:0}; 
+var transform = {k:1,x:0,y:0};
 function zoomAndPan() {
     transform = d3.event.transform;
     app.stage.scale.x = app.stage.scale.y = d3.event.transform.k;
@@ -277,7 +282,7 @@ function zoomAndPan() {
 // pixi node drag
 let draggingNode = false;
 function onDragStart(event){
-    simulation.alphaTarget(0.05).restart(); // the higer, the more sensitive and excited.
+    simulation.alphaTarget(0.05).restart(); // the higher, the more sensitive and excited.
     this.data = event.data;
     var newPosition = this.data.getLocalPosition(this.parent);
     let node = graph.nodes.filter(n=>n.gfx == this)[0];
@@ -376,7 +381,7 @@ function focus(d,ev) {
         markSelected(d, 2);
         centerOnNode(d);
     }
-    updateColor(); 
+    updateColor();
     console.log("focus on", d);
 }
 
@@ -418,12 +423,12 @@ function markSelected(startNode, maxDepth) {
 
 function updateColor() {
     graph.nodes.filter(n => !n.marked).forEach(n => {
-        n.gfx.alpha = 0.2; 
+        n.gfx.alpha = 0.2;
         if (n.group == 2) n.lgfx.alpha=0.2
     });
     graph.links.filter(l => !l.marked).forEach(l => l.alpha = 0.1 );
     graph.nodes.filter(n => n.marked).forEach(n => {
-        n.gfx.alpha = 1; 
+        n.gfx.alpha = 1;
         if (n.group == 2) n.lgfx.alpha =1
     });
     graph.links.filter(l => l.marked).forEach(l => l.alpha = 1);
@@ -451,7 +456,7 @@ async function updateGraph() {
 
 COMPLICITYGRAPH - explore ideologies of political perpetrators with SPAQRL requests to WikiData, D3 and PixiJS.
 
-forked from ideogaph 
+forked from ideogaph
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

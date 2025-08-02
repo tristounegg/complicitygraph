@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+
 import environ
 
 env = environ.Env()
@@ -23,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-u0x@-_p(dbk@*5a0s^w6*l#&ket+v3a=3-&jtch-j49nurc7f@"
+SECRET_KEY = "django-insecure-u0x@-_p(dbk@*5a0s^w6*l#&ke+v3a=3-&jtch-j49nurc7f@"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -35,9 +36,11 @@ ALLOWED_HOSTS = []
 LOCAL_APPS = [
     "wikidata",
     "graph",
+    "graph_neo4j",
 ]
 
 INSTALLED_APPS = [
+    "django_neomodel",
     "corsheaders",
     "rest_framework",
     "django.contrib.admin",
@@ -138,6 +141,21 @@ MEDIA_ROOT = "/app/media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+REST_FRAMEWORK = {
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+    ],
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+    ],
+    "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
+    "URL_FORMAT_OVERRIDE": None,
+    "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.NamespaceVersioning",
+    "DEFAULT_ROUTER_CLASS": "rest_framework.routers.SimpleRouter",
+    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+}
 
 # Wikidata settings
-WIKIDATA_REFRESH_DELAY = env.bool("WIKIDATA_REFRESH_DELAY", 3600 * 24)
+WIKIDATA_REFRESH_DELAY = env.int("WIKIDATA_REFRESH_DELAY", 3600 * 24)
+
+GRAPH_REFRESH_DELAY = env.int("GRAPH_REFRESH_DELAY", 3600 * 24)
