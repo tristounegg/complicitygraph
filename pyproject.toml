@@ -1,0 +1,76 @@
+[tool.towncrier]
+package = "changes"
+package_dir = ""
+filename = "CHANGELOG.md"
+directory = "changes/changelog.d"
+start_string = "<!-- towncrier -->\n"
+template = "changes/template.md.j2"
+issue_format = ""
+title_format = ""
+underlines = [""]
+
+[[tool.towncrier.section]]
+path = ""
+
+[[tool.towncrier.type]]
+directory = "update"
+name = "Update instructions"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "feature"
+name = "Features"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "enhancement"
+name = "Enhancements"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "refactoring"
+name = "Refactoring"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bugfixes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "doc"
+name = "Documentation"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "i18n"
+name = "i18n"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "misc"
+name = "Other"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "deprecation"
+name = "Deprecation"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "removal"
+name = "Removal"
+showcontent = true
+
+[tool.black]
+extend-exclude = "(api/.*/migrations/.*)"
+force-exclude = "(api/.*/migrations/.*)" # pre-commit pass files as args
+
+[tool.isort]
+profile = "black"
+extend_skip_glob = ["api/*/migrations/*"]
+known_first_party = ["funkwhale_api", "config"]
+
+[tool.codespell]
+ignore-words = ".codespellignore"
+skip = "*.po,*.pot,*.lock,api/funkwhale_api/common/locales.py,front/src/locales/*.json"

@@ -85,10 +85,14 @@ let perpetrators = []
 async function getGraphData() {
     loadingGraph.text("Fetching extra graph links from WikiData...this can take a long time");
     try {
-        const params = new URLSearchParams({
-            from_accomplices: None,
-            country=
-        });
+        const params = new URLSearchParams();
+
+        if (selectedCountry) {
+            params.append("country", selectedCountry);
+        }
+        if (selectedFromAccomplice) {
+            params.append("from_accomplice", selectedFromAccomplice);
+        }
 
         const response = await fetch(`/api/v1/graph/graph/?${params.toString()}`);
         const graph = await response.json();

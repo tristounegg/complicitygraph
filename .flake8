@@ -1,0 +1,11 @@
+# Use .flake8 file until pyproject.toml is supported
+# See https://github.com/PyCQA/flake8/issues/234
+[flake8]
+max-line-length = 120
+extend-exclude =
+    */migrations/*
+extend-ignore =
+    F405
+    W503
+    E203
+    E741

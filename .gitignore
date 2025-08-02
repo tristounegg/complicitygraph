@@ -1,0 +1,17 @@
+# Basics
+*.py[cod]
+__pycache__
+api/.venv
+
+# Logs
+*.log
+pip-log.txt
+# Vim
+
+*~
+*.swp
+*.swo
+# npm
+front/node_modules/
+# virtual environments
+.env
