@@ -1,4 +1,6 @@
-// messages:
+// to do : doesn't work, consoloe.log is not displayed in browser but the fetch does, why ? js scope ?
+// import {populateSelectors} from './components/ui.js';
+
 let loadinginfo = d3.select("#loadinginfo");
 let loadingGraph = d3.select("#loadingGraph");
 let constructingGraph = d3.select("#constructingGraph");
@@ -6,7 +8,37 @@ let updatingGraph = d3.select("#updatingGraph");
 let loadinginfotext = "";
 // necessary globals
 let graph, graphstore, canvas ;
+let selectedCountry = "None";
+let selectedFromAccomplice = "None";
 
+export async function populateSelectors() {
+    // Populate countries
+    //  to do : need to link accomplices with countries first in the backend
+    console.log("Fetching countries from API");
+
+    const countryResponse = await fetch("/api/v1/wikidata/country/");
+    const countryData = await countryResponse.json();
+    console.log("Fetching countries from API", countryData);
+    const countrySelector = document.getElementById("countrySelector");
+    countryData.forEach(country => {
+        const option = document.createElement("option");
+        option.value = country.label;
+        option.textContent = country.label;
+        countrySelector.appendChild(option);
+    });
+
+    // Populate accomplices
+    const accompliceResponse = await fetch("/api/v1/wikidata/accomplice/");
+    const accompliceData = await accompliceResponse.json();
+    console.log("Fetching accompliceResponse from API", accompliceData);
+    const accompliceSelector = document.getElementById("accompliceSelector");
+    accompliceData.forEach(accomplice => {
+        const option = document.createElement("option");
+        option.value = accomplice.id;
+        option.textContent = accomplice.label;
+        accompliceSelector.appendChild(option);
+    });
+};
 async function getOrCreateCachedGraph(useCache=true) {
     const cacheKey = `graph`;
     const cached = localStorage.getItem(cacheKey);
@@ -28,11 +60,13 @@ async function getOrCreateCachedGraph(useCache=true) {
 // INITIALISATION
 document.getElementById("upgradeGraphButton").disabled = true;
 async function initGraph() {
-    ( graph = await getOrCreateCachedGraph());
+    console.log("Initializing graph");
+    graph = await getGraphData();
     graph = drawGraph(graph);
     getInstitutionList(graph.nodes);
 }
 
+populateSelectors();
 initGraph();
 
 async function buildItemList(nodes, listName) {
@@ -81,6 +115,14 @@ async function getInstitutionList(nodes) {
     await buildItemList(humanNodes, "humans");
 }
 
+
+document.getElementById("countrySelector").addEventListener("change", (e) => {
+    selectedCountry = e.target.value || null;
+});
+
+document.getElementById("accompliceSelector").addEventListener("change", (e) => {
+    selectedFromAccomplice = e.target.value || null;
+});
 let perpetrators = []
 async function getGraphData() {
     loadingGraph.text("Fetching extra graph links from WikiData...this can take a long time");
@@ -448,7 +490,7 @@ async function updateGraph() {
     updatingGraph.style('display', 'block');
     app.stage.removeChildren();
     // wait before launching
-    (graph = await getOrCreateCachedGraph(useCache = false));
+    graph = await getGraphData();
     graph = drawGraph(graph);
     getInstitutionList(graph.nodes);
     document.getElementById("upgradeGraphButton").disabled = false;

@@ -1,8 +1,12 @@
+import logging
+
 from django.db.utils import IntegrityError
 from django.utils.timezone import now
 from rest_framework import serializers
 
 from . import models
+
+logger = logging.getLogger(__name__)
 
 
 class WikidataField(serializers.Field):
@@ -37,6 +41,8 @@ class WikiDataSparqlBaseSerializer(serializers.Serializer):
     linkTo = WikidataField()
     linkToLabel = WikidataField()
     typeOfLink = WikidataField()
+    country = WikidataField()
+    countryLabel = WikidataField()
 
     def create(self, validated_data):
         # accomplice
@@ -74,9 +80,20 @@ class WikiDataSparqlBaseSerializer(serializers.Serializer):
             )
             accomplice.instance_of.add(instance_of)
         else:
-            print(
+            logger.info(
                 f"Either 'instanceOf' or 'subclassOf' should be provided ? {validated_data}"
             )
+
+        # country
+        logger.info(f"validated_data data: {validated_data}")
+        if "country" in validated_data:
+            country, created = models.Country.objects.update_or_create(
+                label=validated_data["countryLabel"],
+                defaults={
+                    "label": validated_data["countryLabel"],
+                },
+            )
+            accomplice.country.add(country)
         # linkto
         if not self.context.get("base", False):
             defaults = {
@@ -104,7 +121,7 @@ class WikiDataSparqlBaseSerializer(serializers.Serializer):
         if not validated_data.get("instanceOf", False) and not validated_data.get(
             "subclassOf", False
         ):
-            print(
+            logger.info(
                 f"Either 'instanceOf' or 'subclassOf' should be provided ? {validated_data}"
             )
         return super().validate(validated_data)
@@ -119,12 +136,16 @@ class WikidataEdgeSerializer(serializers.Serializer):
 class CountrySerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Country
-        fields = ["id", "name", "code", "label"]
-        read_only_fields = ["id", "name", "code", "label"]
+        fields = ["id", "label"]
+        read_only_fields = ["id", "laebl"]
 
     def create(self, validated_data):
         return models.Country.objects.update_or_create(
-            code=validated_data["code"], defaults=validated_data
-        )[
-            0
-        ]  # Return the created or updated instance
+            label=validated_data["label"], defaults=validated_data
+        )[0]
+
+
+class AccompliceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Accomplice
+        fields = ["id", "label"]

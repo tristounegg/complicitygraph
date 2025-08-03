@@ -6,7 +6,7 @@ from . import models
 class GraphFilter(django_filters.FilterSet):
     group = django_filters.NumberFilter(field_name="nodes__group")
     country = django_filters.CharFilter(
-        field_name="country__code", lookup_expr="iexact"
+        field_name="country__label", lookup_expr="iexact"
     )
     from_accomplice = django_filters.CharFilter(method="filter_from_accomplice")
 

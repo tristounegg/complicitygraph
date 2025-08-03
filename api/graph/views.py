@@ -2,6 +2,7 @@
 # api/v1/graph?group=1&from_accomplice=franck
 
 import json
+import logging
 from datetime import timedelta
 
 from django.conf import settings
@@ -11,6 +12,8 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 
 from . import filters, models, serializers, tasks
+
+logger = logging.getLogger(__name__)
 
 
 class GraphViewSet(viewsets.ModelViewSet):
@@ -24,12 +27,12 @@ class GraphViewSet(viewsets.ModelViewSet):
         freshness_window = timedelta(seconds=settings.GRAPH_REFRESH_DELAY)
         graph = None
         if filtered_graphs.exists():
-            print(f"Found {filtered_graphs.count()} cached graphs")
             latest_graph = filtered_graphs.first()
             if latest_graph.updated_at > now() - freshness_window:
                 serializer = self.get_serializer(latest_graph)
-                print(
-                    f"Returning cached graph {latest_graph.id} from {latest_graph.updated_at}"
+                logger.info(
+                    f"Returning cached graph {latest_graph.id} from {latest_graph.updated_at} \
+                settings.GRAPH_REFRESH_DELAY: {settings.GRAPH_REFRESH_DELAY} seconds"
                 )
                 return Response(serializer.data)
             else:
@@ -45,7 +48,9 @@ class GraphViewSet(viewsets.ModelViewSet):
         if params["from_accomplice"] == "None" or params["country"] == "None":
             from_accomplice = None
             country = None
-        json_graph = tasks.build_graph(graph, from_accomplice, country)
+        json_graph = tasks.build_graph(
+            graph, from_accomplice=from_accomplice, country=country
+        )
         return HttpResponse(
             content=json.dumps(json_graph), content_type="application/json"
         )

@@ -1,10 +1,9 @@
-from django.urls import path
+from rest_framework.routers import SimpleRouter
 
 from . import views
 
-urlpatterns = [
-    path("upgrade", views.upgrade, name="upgrade"),
-    path("base", views.base, name="base"),
-    path("iteration", views.iteration, name="iteration"),
-    path("ceo", views.ceo, name="ceo"),
-]
+router = SimpleRouter()
+router.register(r"country", views.CountryViewSet, basename="country")
+router.register(r"accomplice", views.AccompliceViewSet, basename="accomplice")
+
+urlpatterns = router.urls

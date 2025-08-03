@@ -1,3 +1,5 @@
+import * from components/ui.js
+
 let endpoint = "https://query.wikidata.org/sparql?query=";
 // messages:
 let loadinginfo = d3.select("#loadinginfo");

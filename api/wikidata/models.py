@@ -14,11 +14,17 @@ class InstanceOf(models.Model):
 
 
 class Country(models.Model):
-    name = models.CharField(max_length=255, unique=True)
+    label = models.CharField(max_length=255, unique=True)
+    content_type = models.ForeignKey(
+        ContentType, on_delete=models.CASCADE, blank=True, null=True
+    )
+    object_id = models.CharField(blank=True, null=True)
+    content_object = GenericForeignKey("content_type", "object_id")
 
 
 class Accomplice(models.Model):
     instance_of = GenericRelation(InstanceOf, related_query_name="accomplices")
+    country = GenericRelation(Country, related_query_name="accomplices")
     id = models.CharField(max_length=255, primary_key=True)
     label = models.CharField(max_length=255, blank=True, null=True)
     base = models.BooleanField(default=False)

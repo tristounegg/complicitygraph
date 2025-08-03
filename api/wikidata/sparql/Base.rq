@@ -6,13 +6,19 @@ SELECT DISTINCT
   ?typeOfLink
   ?instanceOf
   ?instanceOfLabel
+  ?country
+  ?countryLabel
 WHERE {
     {
       ?perpetrator wdt:P361 wd:Q134661623.
+      ?perpetrator wdt:P17 ?country
+
     BIND("isPerpetratorWar" AS ?typeOfLink)    }
     UNION
     {
       ?perpetrator wdt:P361 wd:Q108704461.
+      ?perpetrator wdt:P17 ?country
+
       BIND("isPerpetratorWestBank" AS ?typeOfLink)
     }
 

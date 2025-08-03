@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import logging.config
 from pathlib import Path
 
 import environ
@@ -40,7 +41,6 @@ LOCAL_APPS = [
 ]
 
 INSTALLED_APPS = [
-    "django_neomodel",
     "corsheaders",
     "rest_framework",
     "django.contrib.admin",
@@ -93,12 +93,14 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": env.str("POSTGRES_DB", "your_db_name"),
+        "USER": env.str("POSTGRES_USER", "your_user"),
+        "PASSWORD": env.str("POSTGRES_PASSWORD", "your_password"),
+        "HOST": "db",
+        "PORT": "5432",
     }
 }
-
-
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -154,7 +156,28 @@ REST_FRAMEWORK = {
     "DEFAULT_ROUTER_CLASS": "rest_framework.routers.SimpleRouter",
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
 }
-
+LOGLEVEL = env.str("LOGLEVEL", "INFO")
+logging.config.dictConfig(
+    {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "console": {"format": "%(asctime)s %(name)-12s %(levelname)-8s %(message)s"}
+        },
+        "handlers": {
+            "console": {"class": "logging.StreamHandler", "formatter": "console"},
+        },
+        "loggers": {
+            "app": {
+                "level": LOGLEVEL,
+                "handlers": ["console"],
+                # required to avoid double logging with root logger
+                "propagate": False,
+            },
+            "": {"level": LOGLEVEL, "handlers": ["console"]},
+        },
+    }
+)
 # Wikidata settings
 WIKIDATA_REFRESH_DELAY = env.int("WIKIDATA_REFRESH_DELAY", 3600 * 24)
 

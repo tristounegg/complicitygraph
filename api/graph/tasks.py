@@ -1,3 +1,5 @@
+import logging
+
 import matplotlib.colors as mcolors
 import networkx as nx
 from django.db.models import Q
@@ -5,6 +7,8 @@ from django.utils.timezone import now
 from wikidata import models as wikidata_models
 
 from . import models
+
+logger = logging.getLogger(__name__)
 
 
 def compute_all_connected_counts_nx(G, root_nodes):
@@ -91,7 +95,7 @@ def calculate_networksize_for_each_node(graph, target_nodes, db_nodes):
     try:
         link_scores = nx.eigenvector_centrality(graph)
     except nx.NetworkXException as e:
-        print(f"Eigenvector centrality computation failed: {e}")
+        logger.info(f"Eigenvector centrality computation failed: {e}")
         return
 
     if not link_scores:
@@ -115,7 +119,7 @@ def calculate_networksize_for_each_node(graph, target_nodes, db_nodes):
 
 
 def create_graph_object(group=None, country=None, from_accomplice=None):
-    print(f"from_accomplice: {from_accomplice}, country: {country}")
+    logger.info(f"from_accomplice: {from_accomplice}, country: {country}")
     accomplice = (
         models.Accomplice.objects.get(id=from_accomplice)
         if from_accomplice or from_accomplice is not None
@@ -166,6 +170,7 @@ def get_filtered_edges(group=None, country=None, from_accomplice=None):
 
 
 def create_node_and_edges_objects(edges_qs, graph):
+    logger.info("Creating nodes and edges objects...")
     nodes_data = []
     edges_data = []
     for edge in edges_qs:
@@ -234,6 +239,7 @@ def create_node_and_edges_objects(edges_qs, graph):
 def calculate_nodes_attributes(
     db_nodes, nodes_data, edges_data, graph, from_accomplice
 ):
+    logger.info("Calculating nodes attributes...")
     # calculate radius and linkcount for nodes within the graph
     G = nx.Graph()
     G.add_nodes_from(nodes_data)
@@ -270,8 +276,8 @@ def calculate_nodes_attributes(
 
 
 def build_graph(graph=None, group=None, country=None, from_accomplice=None):
+    logger.info(f"Buildign graph with : {group} {country} {from_accomplice}")
     if graph is None:
-        print("graph none")
         graph = create_graph_object(
             group=group, country=country, from_accomplice=from_accomplice
         )

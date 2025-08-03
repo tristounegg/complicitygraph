@@ -40,7 +40,7 @@ def fetch_base_accomplices():
         sparql = file.read()
     encoded_query = quote(sparql)
     data = fetch_wiki_data_post(encoded_query)
-    # print(f"Fetched this from wikidata {data}")
+    # logger.info(f"Fetched this from wikidata {data}")
     serializer = serializers.WikiDataSparqlBaseSerializer(
         data=data["results"]["bindings"], many=True, context={"base": True}
     )
@@ -49,7 +49,7 @@ def fetch_base_accomplices():
 
 
 def fetch_indirect_accomplices():
-    print("Fetching indirect accomplices")
+    logger.info("Fetching indirect accomplices")
     with open("wikidata/sparql/Iteration.rq", encoding="utf-8") as file:
         sparql = file.read()
 
