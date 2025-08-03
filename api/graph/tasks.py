@@ -264,9 +264,13 @@ def calculate_nodes_attributes(
 
     for n in nodes_data:
         node = models.Node.objects.get(wd_id=n[0], graph=graph)
-        node.radius = node.link_count * 2 if hasattr(node, "link_count") else 5
+        node.radius = node.link_count
         node.colour = get_color_from_distance_to_center(
             node.distance_to_center / max_distance
+        )
+        logger.info(
+            f"Node {node.label} - Distance: {node.distance_to_center}, "
+            f"Radius: {node.radius}, Colour: {node.colour}"
         )
         node.save()
         n[1]["radius"] = node.radius

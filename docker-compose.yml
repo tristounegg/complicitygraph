@@ -40,6 +40,31 @@ services:
     env_file:
       - .env
 
+  celery:
+    build:
+      context: ./api
+    command: >
+      sh -c '
+        watchmedo auto-restart --patterns="*.py" --recursive -- celery -A taskapp worker -l debug -B --concurrency=${CELERYD_CONCURRENCY:-0}
+      '
+    depends_on:
+      - api
+      - db
+      - redis
+    volumes:
+      - ./api:/app
+      - static_volume:/app/static
+      - media_volume:/app/media
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
   # neo4j:
   #   image: neo4j:5.19.0
   #   ports:

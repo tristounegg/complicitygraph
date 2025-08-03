@@ -14,6 +14,7 @@ import logging.config
 from pathlib import Path
 
 import environ
+from celery.schedules import crontab
 
 env = environ.Env()
 
@@ -182,3 +183,18 @@ logging.config.dictConfig(
 WIKIDATA_REFRESH_DELAY = env.int("WIKIDATA_REFRESH_DELAY", 3600 * 24)
 
 GRAPH_REFRESH_DELAY = env.int("GRAPH_REFRESH_DELAY", 3600 * 24)
+
+# Celery
+INSTALLED_APPS += ("taskapp.celery.CeleryConfig",)
+CELERY_BROKER_URL = "redis://redis:6379/0"
+CELERY_RESULT_BACKEND = "redis://redis:6379/1"
+
+CELERY_TASK_DEFAULT_RATE_LIMIT = 1
+CELERY_TASK_TIME_LIMIT = env.int("CELERY_TASK_TIME_LIMIT", default=300)
+CELERY_BEAT_SCHEDULE = {
+    "wikidata.upgrade_accomplices": {
+        "task": "wikidata.upgrade_accomplices",
+        "schedule": crontab(minute="0", hour="*"),
+        "options": {"expires": 60 * 60},
+    },
+}

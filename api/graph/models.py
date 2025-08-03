@@ -43,7 +43,7 @@ class Node(models.Model):
     distance_to_center = models.IntegerField(default=0)
     link_count = models.IntegerField(default=0)
     radius = models.IntegerField()
-    colour = models.CharField(max_length=7)
+    colour = models.CharField(max_length=9)
     group = models.IntegerField()
 
     graph = models.ForeignKey(

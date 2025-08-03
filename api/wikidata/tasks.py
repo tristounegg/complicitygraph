@@ -7,6 +7,7 @@ import requests
 from django.conf import settings
 from django.db.models import Q
 from django.utils.timezone import now
+from taskapp import celery
 
 from . import models, serializers
 
@@ -92,6 +93,7 @@ def fetch_ceo_accomplices():
     return serializer.save()
 
 
+@celery.app.task(name="wikidata.upgrade_accomplices")
 def upgrade_accomplices():
     fetch_base_accomplices()
     # this two can run asynchronously
